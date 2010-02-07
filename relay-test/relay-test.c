@@ -1,4 +1,6 @@
 // Based on serial.c code by Orion Sky Lawlor (olawlor@acm.org, 2004/1/14)
+#include <pic.h>
+typedef unsigned char byte;
 
 __IDLOC(1);
 __CONFIG(INTIO & WDTDIS & MCLRDIS & BORDIS & UNPROTECT & PWRTEN);
@@ -27,8 +29,14 @@ void busywait_csec(byte csec) {
             for (k = 250; k != 0; k--) NOP(); // 1 ms
 }
 
+// wait for integer milliseconds
+void busywait_msec(byte msec) {
+    byte i,j;
+    for (i = msec; i != 0; i--) // 10 ms = 0.01 sec
+        for (j = 250; j != 0; j--) NOP(); // 1 ms
+}
+
 void main(void) {
-    load_osccal();
     TRISIO = 0x0; // all 6 pins are outputs
     
     CMCON = 0x07; /* comparator off */
@@ -54,7 +62,7 @@ void main(void) {
     GPIE=1; /* enable GPIO interrupts */
     
     GIE=0; /* turn off interrupts */
-    busywait(250); /* wait for lines to settle before sending */
+    busywait_msec(1); /* wait for lines to settle before sending */
     
     TRISIO |= (1 << 2);
     
