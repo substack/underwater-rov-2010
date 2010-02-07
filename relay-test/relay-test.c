@@ -16,7 +16,7 @@ void busywait_sec(byte sec) {
 // wait for integer deciseconds
 void busywait_dsec(byte dsec) {
     byte i,j,k;
-    for (i = dsec; i != 0; i--) // hundredths of seconds
+    for (i = dsec; i != 0; i--) // tenths of seconds
         for (j = 100; j != 0; j--) // 10 ms = 0.01 sec
             for (k = 250; k != 0; k--) NOP(); // 1 ms
 }
@@ -69,9 +69,9 @@ void main(void) {
     while (1) {
         //GPIO |= (1 << 2);
         GPIO = 0xff;
-        busywait_sec(1); // 1 second
+        busywait_csec(1); // 0.01 seconds
         //GPIO &= ~(1 << 2);
         GPIO = 0x00;
-        busywait_sec(1); // 1 second
+        busywait_csec(1); // 0.01 seconds
     }
 }

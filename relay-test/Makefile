@@ -22,7 +22,7 @@ install: $(PROG).hex
 	#pk2 -device 16F887 -write $< 
 
 on: $(PROG).hex
-	pk2cmd -P $(MODEL) -on
+	pk2cmd -P $(MODEL) -on # might turn it on
 
 off: $(PROG).hex
-	pk2cmd -P $(MODEL) -off
+	pk2cmd -P $(MODEL) -off # might turn it off
