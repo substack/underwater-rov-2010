@@ -67,11 +67,11 @@ void main(void) {
     TRISIO |= (1 << 2);
     
     while (1) {
-        //GPIO |= (1 << 2);
         GPIO = 0xff;
-        busywait_csec(1); // 0.01 seconds
-        //GPIO &= ~(1 << 2);
+        // 4ms half-duty cycle is the lower bound for prop motion
+        // with vanilla thruster and plastic propeller
+        busywait_msec(4);
         GPIO = 0x00;
-        busywait_csec(1); // 0.01 seconds
+        busywait_msec(4);
     }
 }
