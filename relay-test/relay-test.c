@@ -1,21 +1,7 @@
-/**
-  Test routine for serial.c interface.
-  Orion Sky Lawlor, olawlor@acm.org, 2004/1/14
-*/
-#include "pickit.h"
-//#include "serial.h"
+// Based on serial.c code by Orion Sky Lawlor (olawlor@acm.org, 2004/1/14)
 
 __IDLOC(1);
 __CONFIG(INTIO & WDTDIS & MCLRDIS & BORDIS & UNPROTECT & PWRTEN);
-
-/* Busy-wait for this fraction of a millisecond.
-  FIXME: using timer here would use less power and generate less heat
-*/
-void busywait_subms(byte fract) {
-    // Wait for one millisecond (depends on compiler, optimizer)
-    byte c;
-    for (c=fract;c!=0;c--) { NOP(); }
-}
 
 // wait for integer seconds
 void busywait_sec(byte sec) {
@@ -41,31 +27,13 @@ void busywait_csec(byte csec) {
             for (k = 250; k != 0; k--) NOP(); // 1 ms
 }
 
-/* Run this GPIO line (expressed as a bit mask)
-   at this fractional power.  0 sends a 1ms pulse,
-   255 sends a 2ms pulse. */
-void fire_pwm(byte fract, byte pin) {
-    GPIO |= pin; /* turn pin on */
-    busywait_subms(250); /* wait 1ms always */
-    busywait_subms(fract); /* wait variable delay */
-    GPIO &= ~pin; /* turn pin off again */
-}
-void fire_pwmc(byte fract, byte pin) {
-    //PORTC |= pin; /* turn pin on */
-    busywait_subms(250); /* wait 1ms always */
-    busywait_subms(fract); /* wait variable delay */
-    //PORTC &= ~pin; /* turn pin off again */
-}
-
 void main(void) {
     load_osccal();
-    TRISIO = 0x0;
-    //TRISC = 0; /* all six port-c pins are outputs */
+    TRISIO = 0x0; // all 6 pins are outputs
     
     CMCON = 0x07; /* comparator off */
     WPU=0; /* disable weak pull-up on all pins*/
     
-    //*
     //        4 MHz  | analog pin 1
     //ANSEL = (1 << 4) | (1 << 0);
     ANSEL = 0x00;
