@@ -70,8 +70,8 @@ void main(void) {
         GPIO = 0xff;
         // 4ms half-duty cycle is the lower bound for prop motion
         // with vanilla thruster and plastic propeller
-        busywait_msec(4);
+        busywait_dsec(3);
         GPIO = 0x00;
-        busywait_msec(4);
+        busywait_dsec(1);
     }
 }
