@@ -1,9 +1,9 @@
 PICPREFIX=../picc
 include ./Makefile.common
 
-MODEL=PIC12F675
+MODEL=PIC16F887
 
-PROG=relay-test
+PROG=topside
 OBJS=$(PROG).c
 
 all: $(PROG).hex
@@ -18,11 +18,3 @@ $(PROG)_b.hex: $(OBJS)
 install: $(PROG).hex
 	pk2prep
 	pk2cmd -M -P $(MODEL) -T -F $< 
-	#pk2cmd -M -P 12F675 -T -F $< 
-	#pk2 -device 16F887 -write $< 
-
-on: $(PROG).hex
-	pk2cmd -P $(MODEL) -on # might turn it on
-
-off: $(PROG).hex
-	pk2cmd -P $(MODEL) -off # might turn it off

@@ -1,0 +1,28 @@
+# UNIX Makefile for PICL compiler
+
+OPTS=-Zg -O
+
+### 12F 8-pin chips
+# CPU=--chip=12F675    # For PICClite 9.60 (works)
+#CPU=-12F675    # For PICClite 8.10, 12F675, 16F676, 16F688 (all work)
+
+### 16F679 14-pin chips *with* OSCCAL
+#CPU+=-DPIC16F887=1
+CPU=--chip=16F887
+
+### 16F688 14-pin chips *without* OSCCAL
+# CPU+=-DPIC16F688=1
+
+PICL=$(PICPREFIX)/bin/picl $(CPU) $(OPTS) -I$(PICPREFIX)/include
+
+all:
+
+SUFFIXES=.hex
+.c.hex:
+	$(PICL) $<
+
+%.hex: %.c
+	$(PICL) $<
+
+clean:
+	bash -c 'rm -f *.{cof,hex,hxl,lst,obj,p1,sdb,sym}'
