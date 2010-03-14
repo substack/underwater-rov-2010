@@ -1,0 +1,4 @@
+#!/bin/bash
+sudo rmmod usbhid
+sudo chgrp plugdev /dev/bus/usb -R
+sudo chmod g+rw /dev/bus/usb -R
