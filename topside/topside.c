@@ -1,6 +1,9 @@
 #include <pic.h>
 #include "util.h"
 
+#define CMD_PRELUDE 0x53
+#define CMD_SET_A 0x41
+
 void main() {
     TRISA = 0;
     TRISB = 0;
@@ -21,9 +24,22 @@ void main() {
     init();
     
     while (1) {
-        PORTA = (1 << 0) | (1 << 3) | (1 << 4);
-        wait_csec(1);
-        PORTA = (1 << 1) | (1 << 2) | (1 << 5);
-        wait_csec(1);
+        byte i;
+        for (i = 0; i <= 0xf; i++) {
+            serial_tx(i);
+            wait_dsec(10);
+        }
+    }
+    
+    while (1) {
+        byte prelude, cmd, data;
+        prelude = serial_rx();
+        if (prelude == CMD_PRELUDE) {
+            cmd = serial_rx();
+            if (cmd == CMD_SET_A) {
+                PORTA = serial_rx();
+                wait_dsec(1);
+            }
+        }
     }
 }

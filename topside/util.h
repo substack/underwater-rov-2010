@@ -35,7 +35,7 @@ void serial_init(void) {
     SPEN=1;
     TXEN=1;
     CREN=1;
-    SCKP=1; // RS-232 style data inversion
+    SCKP=0; // RS-232 style data inversion
     
     ADDEN=0; /* don't do address detection */
     ABDEN=0; /* don't do auto-baud-detect */
@@ -51,7 +51,7 @@ void init(void) {
 }
 
 void serial_tx(byte b) {
-    while (!TXIF) {PORTC=1;/* outgoing still busy */}
+    while (!TXIF) NOP();
     TX9D = 0; // no parity
     TXREG = b;
 }
