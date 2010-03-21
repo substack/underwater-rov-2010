@@ -27,7 +27,6 @@ void main() {
         byte i;
         for (i = 0; i <= 0xf; i++) {
             serial_tx(i);
-            wait_dsec(10);
         }
     }
     

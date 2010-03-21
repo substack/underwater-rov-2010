@@ -54,6 +54,9 @@ void serial_tx(byte b) {
     while (!TXIF) NOP();
     TX9D = 0; // no parity
     TXREG = b;
+    // inexplicably, tx doesn't work unless after transmission at least 4
+    // hundreths of a second elapse between calls
+    wait_csec(5);
 }
 
 //static bit rcv, should; /* parity bit */
