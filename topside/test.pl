@@ -4,13 +4,13 @@ use strict;
 use Time::HiRes;
 
 sub read_test {
+    open my $fh, "<", "/dev/ttyUSB0";
     while (1) {
-        open my $fh, "<", "/dev/ttyUSB0";
         my $byte = getc $fh;
         print unpack "B*", $byte;
         print "\n";
-        close $fh;
     }
+    close $fh;
 }
 
 sub write_test {
