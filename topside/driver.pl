@@ -12,10 +12,9 @@ my %CMD = (
 open my $fh, "+<", "/dev/ttyUSB0";
 
 while (1) {
-    my $byte = pack "H*", map /(\w+)/, scalar <STDIN>;
+    my $byte = pack "H2", map /(\w+)/, scalar <STDIN>;
     my $msg = $CMD{PRELUDE} . $CMD{SET_MOTORS} . $byte;
     do {
-        #print "Sending: ", (join " ", (unpack "B*", $msg) =~ m/(.{8})/g), "\n";
         print $fh $byte;
     } until ord getc $fh == $CMD{OK};
     print "OK\n";
