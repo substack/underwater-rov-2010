@@ -1,8 +1,9 @@
 #include <pic.h>
 #include "util.h"
 
-#define CMD_PRELUDE 0x53
-#define CMD_SET_A 0x41
+#define CMD_PRELUDE 0x50
+#define CMD_SET_MOTORS 0x40
+#define CMD_OK 0x80
 
 void main() {
     TRISA = 0;
@@ -23,22 +24,10 @@ void main() {
     
     init();
     
-    while (1) {
-        byte i;
-        for (i = 0; i <= 0xf; i++) {
-            serial_tx(i);
-        }
-    }
+    // #include <sum_test.h>
     
     while (1) {
-        byte prelude, cmd, data;
-        prelude = serial_rx();
-        if (prelude == CMD_PRELUDE) {
-            cmd = serial_rx();
-            if (cmd == CMD_SET_A) {
-                PORTA = serial_rx();
-                wait_dsec(1);
-            }
-        }
+        PORTA = serial_rx();
+        serial_tx(CMD_OK);
     }
 }

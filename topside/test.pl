@@ -3,6 +3,20 @@ use warnings;
 use strict;
 use Time::HiRes;
 
+sub sum_test {
+    open my $fh, "+<", "/dev/ttyUSB0";
+    while (1) {
+        my $x = getc STDIN;
+        my $y = getc STDIN;
+        scalar <STDIN>;
+        my $sent = $x . $y;
+        print $fh $sent;
+        my $recv = getc $fh;
+        print +(unpack "B*", $sent), " -> ", (unpack "B*", $recv), "\n";
+    }
+    close $fh;
+}
+
 sub read_test {
     open my $fh, "<", "/dev/ttyUSB0";
     while (1) {
@@ -23,4 +37,4 @@ sub write_test {
     close $fh;
 }
 
-read_test();
+sum_test();
