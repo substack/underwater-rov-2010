@@ -1,5 +1,6 @@
 use MooseX::Declare;
 use Linux::Joystick;
+use Time::HiRes;
 
 class Gamepad {
     has 'axes' => (
@@ -50,9 +51,11 @@ class Gamepad {
     method run {
         print "Ready\n";
         while (1) {
-            my $ev = $self->js->nextEvent // next;
-            $self->handle($ev);
+            while (defined (my $ev = $self->js->nextEvent)) {
+                $self->handle($ev);
+            }
             $self->hook->($self);
+            sleep 0.1;
         }
     }
     

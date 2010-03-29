@@ -14,6 +14,7 @@ my $rov = ROV->new(
 #ReadMode 4;
 
 use Gamepad;
+use Time::HiRes;
 Gamepad->new(
     hook => sub {
         my $gamepad = shift;
@@ -29,14 +30,17 @@ Gamepad->new(
             left => ((sin $theta) + (cos $theta)) * $d,
             right => ((sin $theta) - (cos $theta)) * $d,
         });
-        $rov->send($rov->motor_byte);
+        my $byte = $rov->motor_byte;
+        print "$byte\n";
+        $rov->send($byte);
+        print +(unpack "H*", $rov->recv), "\n";
     },
     on_down => sub { print "down!" },
     on_up => sub { print "up!" },
 )->run;
 
-#END { 
-#    ReadMode 0;
-#    print "\r\n";
-#}
-
+END { 
+    #ReadMode 0;
+    #print "\r\n";
+    $rov->send(0);
+}

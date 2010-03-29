@@ -9,7 +9,13 @@ class ROV {
     
     has 'fh' => (
         is => 'ro',
-        default => sub { open my $fh, "+<", shift->serial; $fh },
+        default => sub {
+            open my $fh, "+<", shift->serial;
+            select $fh;
+            $|++;
+            select STDOUT;
+            return $fh;
+        },
     );
     
     has 'motors' => (
