@@ -3,7 +3,7 @@ include ./Makefile.common
 
 MODEL=PIC16F887
 
-PROG=topside
+PROG=micro
 OBJS=$(PROG).c
 
 all: $(PROG).hex

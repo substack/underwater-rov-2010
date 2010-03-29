@@ -1,40 +1,39 @@
 #!/usr/bin/env perl
+# ROV control script
+use 5.10.0;
 use warnings;
 use strict;
-use Time::HiRes;
+$|++;
 
-sub sum_test {
-    open my $fh, "+<", "/dev/ttyUSB0";
-    while (1) {
-        my $x = getc STDIN;
-        my $y = getc STDIN;
-        scalar <STDIN>;
-        my $sent = $x . $y;
-        print $fh $sent;
-        my $recv = getc $fh;
-        print +(unpack "B*", $sent), " -> ", (unpack "B*", $recv), "\n";
-    }
-    close $fh;
-}
+use ROV;
+my $rov = ROV->new(
+    @ARGV ? (serial => shift) : ()
+);
 
-sub read_test {
-    open my $fh, "<", "/dev/ttyUSB0";
-    while (1) {
-        my $byte = getc $fh;
-        print unpack "B*", $byte;
-        print "\n";
-    }
-    close $fh;
-}
+#use Term::ReadKey;
+#ReadMode 4;
 
-sub write_test {
-    open my $fh, ">", "/dev/ttyUSB0";
-    for (0 .. 10) {
-        print $fh $_ for 0x53, 0x41, (1 << 1) | (1 << 2) | (1 << 5);
-        sleep 0.2;
-        print $fh $_ for 0x53, 0x41, (1 << 0) | (1 << 3) | (1 << 4);
-    }
-    close $fh;
-}
+use Gamepad;
+Gamepad->new(
+    hook => sub {
+        my $gamepad = shift;
+        my $lx = $gamepad->axis('left')->{x};
+        my $ly = $gamepad->axis('left')->{y};
+        my $ry = $gamepad->axis('right')->{y};
+        
+        $rov->motors({
+            vertical => $ry,
+            left => ($ly - $lx) / ($ly + $lx) * ($ly - $lx),
+            right => ($ly - $lx) / ($ly + $lx) * ($lx - $ly),
+        });
+        $rov->send($rov->motor_byte);
+    },
+    on_down => sub { print "down!" },
+    on_up => sub { print "up!" },
+)->run;
 
-sum_test();
+#END { 
+#    ReadMode 0;
+#    print "\r\n";
+#}
+
