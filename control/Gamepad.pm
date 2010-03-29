@@ -25,7 +25,7 @@ class Gamepad {
         isa => 'Linux::Joystick',
         is => 'ro',
         default => sub { Linux::Joystick->new(
-            nonblocking => 1,
+            blocking => 1,
             device => 1,
         ) },
     );
