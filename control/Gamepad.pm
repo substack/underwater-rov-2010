@@ -55,7 +55,6 @@ class Gamepad {
                 $self->handle($ev);
             }
             $self->hook->($self);
-            sleep 0.1;
         }
     }
     

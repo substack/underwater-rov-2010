@@ -10,6 +10,7 @@ class ROV {
     has 'fh' => (
         is => 'ro',
         default => sub {
+            system "stty raw clocal 57600 cs8 -parenb parodd cstopb -echo < /dev/ttyUSB0";
             open my $fh, "+<", shift->serial;
             select $fh;
             $|++;

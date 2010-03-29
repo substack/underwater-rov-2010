@@ -24,8 +24,6 @@ void main() {
     
     init();
     
-    // #include <sum_test.h>
-    
     while (1) {
         PORTA = serial_rx();
         serial_tx(CMD_OK);

@@ -31,9 +31,9 @@ Gamepad->new(
             right => ((sin $theta) - (cos $theta)) * $d,
         });
         my $byte = $rov->motor_byte;
-        print "$byte\n";
+        print "> $byte\n";
         $rov->send($byte);
-        print +(unpack "H*", $rov->recv), "\n";
+        print "< ", +(unpack "H*", $rov->recv), "\n";
     },
     on_down => sub { print "down!" },
     on_up => sub { print "up!" },
