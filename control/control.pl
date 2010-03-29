@@ -21,10 +21,13 @@ Gamepad->new(
         my $ly = $gamepad->axis('left')->{y};
         my $ry = $gamepad->axis('right')->{y};
         
+        my $theta = 2 * atan2 1 - $lx, -$ly;
+        my $d = sqrt $lx ** 2 + $ly ** 2;
+        
         $rov->motors({
             vertical => $ry,
-            left => ($ly - $lx) / ($ly + $lx) * ($ly - $lx),
-            right => ($ly - $lx) / ($ly + $lx) * ($lx - $ly),
+            left => ((sin $theta) + (cos $theta)) * $d,
+            right => ((sin $theta) - (cos $theta)) * $d,
         });
         $rov->send($rov->motor_byte);
     },

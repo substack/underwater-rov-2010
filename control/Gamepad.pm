@@ -5,7 +5,9 @@ class Gamepad {
     has 'axes' => (
         isa => 'HashRef',
         is => 'ro',
-        default => sub { +{ map { $_ => 0 } qw/left right/ } },
+        default => sub { +{
+            map { $_ => { x => 0, y => 0 } } qw/left right/
+        } },
     );
     
     method axis(Str $key) { $self->axes->{$key} }
@@ -23,7 +25,7 @@ class Gamepad {
         is => 'ro',
         default => sub { Linux::Joystick->new(
             nonblocking => 1,
-            device => 0,
+            device => 1,
         ) },
     );
     
@@ -46,6 +48,7 @@ class Gamepad {
     );
     
     method run {
+        print "Ready\n";
         while (1) {
             my $ev = $self->js->nextEvent // next;
             $self->handle($ev);
@@ -63,7 +66,7 @@ class Gamepad {
             }->{$ev->axis};
             my $lr = $ev->axis < 2 ? 'left' : 'right';
             
-            $self->axes->{$lr}{$xy} = $ev->axisValue;
+            $self->axes->{$lr}{$xy} = $ev->axisValue / (2**15 - 1);
         }
         elsif ($ev->isButton) {
             my $key = {
