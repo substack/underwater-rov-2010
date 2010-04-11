@@ -1,5 +1,5 @@
 module ROV.Comm (
-    Comm(..), newComm, setMotor, send
+    Comm(..), Motor(..), newComm, setMotor, send
 ) where
 
 import Data.Bits ((.|.),bit)
@@ -26,6 +26,8 @@ data Motor = MLeft | MRight | MVertical
 newComm :: FilePath -> IO Comm
 newComm dev = do
     fh <- File.openFile dev File.ReadWriteMode
+    system $ "sudo chgrp plugdev /dev/bus/usb -R"
+    system $ "sudo chmod g+rw /dev/bus/usb -R"
     system $ "stty raw clocal 57600 cs8 -parenb parodd cstopb -echo < " ++ dev
     return $ Comm {
         commH = fh,

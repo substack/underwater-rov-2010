@@ -15,8 +15,10 @@ mainArgs :: Argv -> IO ()
 mainArgs argv = do
     js <- getJoystick argv
     comm <- newComm "/dev/ttyUSB0"
-    run js (handler comm)
+    run js comm handler
     
-handler :: Comm -> InputState -> IO ()
-handler comm state = do
-    print $ angle &&& magnitude $ leftAxis state
+handler :: InputState -> Comm -> IO Comm
+handler state comm = do
+    let la = leftAxis state
+    print (magnitude la)
+    return $ setMotor comm MLeft (magnitude la)
