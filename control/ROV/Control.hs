@@ -8,10 +8,11 @@ import qualified Graphics.UI.SDL.Joystick as JS
 
 import Data.Int (Int16)
 
-import Control.Monad (forever,mapM)
+import Control.Monad (mapM,join,liftM2)
 import Control.Applicative ((<$>))
 
 import Data.Maybe (isNothing,isJust,fromJust)
+import Control.Concurrent (MVar,newMVar,takeMVar,putMVar)
 
 type Argv = [String]
 
@@ -71,5 +72,9 @@ getState js = do
         rightAxis = (rx,-ry)
     }
 
-run :: SDL.Joystick -> (InputState -> IO ()) -> IO ()
-run js f = forever $ f =<< getState js
+run :: SDL.Joystick -> a -> (InputState -> a -> IO a) -> IO ()
+run js x f = (flip iterateM_ $ x) $ \x' -> do
+    (flip f $ x') =<< getState js
+
+iterateM_ :: (Functor m, Monad m) => (a -> m a) -> a -> m ()
+iterateM_ f x = iterateM_ f =<< f x
