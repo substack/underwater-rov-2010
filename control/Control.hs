@@ -3,11 +3,12 @@ module ROV.Control where
 import qualified Graphics.UI.SDL as SDL
 import qualified Graphics.UI.SDL.Joystick as JS
 
-import Control.Monad (when,forM_)
-import Control.Applicative ((<$>))
+import Control.Monad (when,mapM,liftM2,join)
+import Control.Applicative ((<$>),(<*>))
+import Control.Arrow ((***),(&&&))
 
 import System.Environment (getArgs)
-import Data.Maybe (isNothing,fromJust)
+import Data.Maybe (isNothing,isJust,fromJust,catMaybes)
 import Control.Concurrent (forkIO,ThreadId(..))
 
 main :: IO ()
@@ -19,31 +20,38 @@ mainArgs :: Argv -> IO ()
 mainArgs argv = do
     SDL.init [SDL.InitJoystick]
     js <- getJoystick argv
+    print js
     return ()
 
 -- | Select a joystick based on argv or prompted input
 getJoystick :: Argv -> IO SDL.Joystick
 getJoystick argv = do
-    avail <- JS.countAvailable
-    when (avail == 0) $ fail "No joysticks available"
-    mJs <- (JS.tryOpen =<<) . (pred <$>)
-        $ case argv of
-            [] -> do
-                putStrLn "Available joysticks:"
-                forM_ [1..avail] $ \n ->
-                    putStrLn . (("    " ++ show n ++ ") ") ++) =<< JS.name (n - 1)
-                putStr "Joystick number: "
-                read <$> getLine
-            (n:_) -> return $ read n
+    ix <- enumFromTo 0 <$> JS.countAvailable
+    names <- mapM JS.tryName ix
+    sticks <- mapM JS.tryOpen ix
     
-    when (isNothing mJs) $ fail "Selected joystick not available"
-    return $ fromJust mJs
+    let avail :: [(String,SDL.Joystick)]
+        avail = map (\(x,y) -> (fromJust x, fromJust y))
+            $ filter (\(x,y) -> isJust x && isJust y)
+            $ zip names sticks
+    
+    case filter (capable . snd) avail of
+        [] -> fail "No capable joysticks availble"
+        [(_,js)] -> return js
+        xs -> do
+            putStrLn "Available capable joysticks:"
+            putStr $ unlines $ zipWith
+                (\i name -> "    " ++ i ++ ") " ++ name)
+                (map show [0..])
+                (map fst xs)
+            putStr "Joystick number: "
+            snd . (xs !!) . read <$> getLine
 
 -- | Joystick has sufficient capabilities to control the ROV
-capable :: SDL.Joystick -> IO Bool
-capable js = do
-    print $ JS.axesAvailable js
-    return False
+capable :: SDL.Joystick -> Bool
+capable js = axes >= 4
+    where
+        axes = JS.axesAvailable js
 
 -- | 
 joystickThread :: SDL.Joystick -> IO ThreadId
