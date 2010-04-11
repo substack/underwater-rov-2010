@@ -3,6 +3,8 @@ module ROV.Control where
 import qualified Graphics.UI.SDL as SDL
 import qualified Graphics.UI.SDL.Joystick as JS
 
+import Data.Int (Int16)
+
 import Control.Monad (when,mapM,liftM2,join)
 import Control.Applicative ((<$>),(<*>))
 import Control.Arrow ((***),(&&&))
@@ -47,12 +49,31 @@ getJoystick argv = do
             putStr "Joystick number: "
             snd . (xs !!) . read <$> getLine
 
--- | Joystick has sufficient capabilities to control the ROV
+-- | Sufficient capabilities to control the ROV
 capable :: SDL.Joystick -> Bool
 capable js = axes >= 4
-    where
-        axes = JS.axesAvailable js
+    where axes = JS.axesAvailable js
 
--- | 
-joystickThread :: SDL.Joystick -> IO ThreadId
-joystickThread js = forkIO undefined
+type AxisState = (Float,Float)
+
+angle :: AxisState -> Float
+angle (x,y) = atan2 (1 - x) (-y)
+
+magnitude :: AxisState -> Float
+magnitude (x,y) = sqrt $ x ** 2 + y ** 2
+
+data InputState = InputState {
+    leftAxis :: AxisState,
+    rightAxis :: AxisState
+}
+
+getState :: SDL.Joystick -> IO InputState
+getState js = do
+    let mb = fromIntegral (maxBound :: Int16) :: Float
+    [lx,ly,rx,ry] <- mapM (((/mb) . fromIntegral <$>) . JS.getAxis js) [0,1,2,3]
+    
+    return $ InputState {
+        leftAxis = (lx,ly),
+        rightAxis = (rx,ry)
+    }
+
