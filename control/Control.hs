@@ -5,7 +5,7 @@ import qualified Graphics.UI.SDL.Joystick as JS
 
 import Data.Int (Int16)
 
-import Control.Monad (when,mapM,liftM2,join)
+import Control.Monad (forever,mapM)
 import Control.Applicative ((<$>),(<*>))
 import Control.Arrow ((***),(&&&))
 
@@ -22,8 +22,7 @@ mainArgs :: Argv -> IO ()
 mainArgs argv = do
     SDL.init [SDL.InitJoystick]
     js <- getJoystick argv
-    print js
-    return ()
+    run js
 
 -- | Select a joystick based on argv or prompted input
 getJoystick :: Argv -> IO SDL.Joystick
@@ -65,15 +64,21 @@ magnitude (x,y) = sqrt $ x ** 2 + y ** 2
 data InputState = InputState {
     leftAxis :: AxisState,
     rightAxis :: AxisState
-}
+} deriving Show
 
 getState :: SDL.Joystick -> IO InputState
 getState js = do
+    JS.update
+    
     let mb = fromIntegral (maxBound :: Int16) :: Float
-    [lx,ly,rx,ry] <- mapM (((/mb) . fromIntegral <$>) . JS.getAxis js) [0,1,2,3]
+    [lx,ly,rx,ry] <- mapM (((/mb) . fromIntegral <$>) . JS.getAxis js) [0,1,3,2]
     
     return $ InputState {
-        leftAxis = (lx,ly),
-        rightAxis = (rx,ry)
+        leftAxis = (lx,-ly),
+        rightAxis = (rx,-ry)
     }
 
+run :: SDL.Joystick -> IO ()
+run js = forever $ do
+    state <- getState js
+    print state
