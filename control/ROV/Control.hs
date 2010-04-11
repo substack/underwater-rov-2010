@@ -1,4 +1,7 @@
-module ROV.Control where
+module ROV.Control (
+    InputState(..), AxisState,
+    getJoystick, run, angle, magnitude,
+) where
 
 import qualified Graphics.UI.SDL as SDL
 import qualified Graphics.UI.SDL.Joystick as JS
@@ -6,27 +9,17 @@ import qualified Graphics.UI.SDL.Joystick as JS
 import Data.Int (Int16)
 
 import Control.Monad (forever,mapM)
-import Control.Applicative ((<$>),(<*>))
-import Control.Arrow ((***),(&&&))
+import Control.Applicative ((<$>))
 
-import System.Environment (getArgs)
-import Data.Maybe (isNothing,isJust,fromJust,catMaybes)
-import Control.Concurrent (forkIO,ThreadId(..))
-
-main :: IO ()
-main = mainArgs =<< getArgs
+import Data.Maybe (isNothing,isJust,fromJust)
 
 type Argv = [String]
-
-mainArgs :: Argv -> IO ()
-mainArgs argv = do
-    SDL.init [SDL.InitJoystick]
-    js <- getJoystick argv
-    run js
 
 -- | Select a joystick based on argv or prompted input
 getJoystick :: Argv -> IO SDL.Joystick
 getJoystick argv = do
+    SDL.init [SDL.InitJoystick]
+    
     ix <- enumFromTo 0 <$> JS.countAvailable
     names <- mapM JS.tryName ix
     sticks <- mapM JS.tryOpen ix
@@ -78,7 +71,5 @@ getState js = do
         rightAxis = (rx,-ry)
     }
 
-run :: SDL.Joystick -> IO ()
-run js = forever $ do
-    state <- getState js
-    print $ angle &&& magnitude $ leftAxis state
+run :: SDL.Joystick -> (InputState -> IO ()) -> IO ()
+run js f = forever $ f =<< getState js
