@@ -14,8 +14,9 @@ type Argv = [String]
 mainArgs :: Argv -> IO ()
 mainArgs argv = do
     js <- getJoystick argv
-    run js handler
+    comm <- newComm "/dev/ttyUSB0"
+    run js (handler comm)
     
-handler :: InputState -> IO ()
-handler state = do
+handler :: Comm -> InputState -> IO ()
+handler comm state = do
     print $ angle &&& magnitude $ leftAxis state
