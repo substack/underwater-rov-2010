@@ -56,7 +56,7 @@ capable js = axes >= 4
 type AxisState = (Float,Float)
 
 angle :: AxisState -> Float
-angle (x,y) = atan2 (1 - x) (-y)
+angle (x,y) = atan2 y x
 
 magnitude :: AxisState -> Float
 magnitude (x,y) = sqrt $ x ** 2 + y ** 2
@@ -81,4 +81,4 @@ getState js = do
 run :: SDL.Joystick -> IO ()
 run js = forever $ do
     state <- getState js
-    print state
+    print $ angle &&& magnitude $ leftAxis state
