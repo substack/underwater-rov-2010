@@ -10,9 +10,11 @@ import qualified System.IO as File
 import System.Process (system)
 
 import Data.Binary.Put (runPut,putWord8)
+import Data.Binary.Get (runGet,getWord8)
 import Data.ByteString.Lazy (ByteString,hPut,hGet)
 
 import Control.Monad (replicateM)
+import Control.Applicative ((<$>))
 import System.Random (randomRIO)
 
 data Comm = Comm {
@@ -42,8 +44,10 @@ send :: Comm -> IO Comm
 send comm@Comm{ commH = fh } = do
     rs <- replicateM 3 $ randomRIO (0,1)
     let byte = motorByte comm rs
-    print byte
+    putStrLn $ "send " ++ show byte
     hPut fh $ runPut (putWord8 byte)
+    res <- runGet getWord8 <$> hGet fh 1
+    putStrLn $ "recv " ++ show res
     return comm
 
 motorByte :: Comm -> [Float] -> Word8
