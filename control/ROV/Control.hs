@@ -8,7 +8,7 @@ import qualified Graphics.UI.SDL.Joystick as JS
 
 import Data.Int (Int16)
 
-import Control.Monad (mapM,join,liftM2)
+import Control.Monad (mapM,forever)
 import Control.Applicative ((<$>))
 
 import Data.Maybe (isNothing,isJust,fromJust)
@@ -70,7 +70,7 @@ joystickThread js = do
             leftAxis = (0,0),
             rightAxis = (0,0)
         }
-    forkIO $ do
+    forkIO $ forever $ do
         JS.update
         let mb = fromIntegral (maxBound :: Int16) :: Float
         [lx,ly,rx,ry] <- mapM (((/mb) . fromIntegral <$>) . JS.getAxis js) [0,1,3,2]
