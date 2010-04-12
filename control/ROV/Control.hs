@@ -12,7 +12,7 @@ import Control.Monad (mapM,join,liftM2)
 import Control.Applicative ((<$>))
 
 import Data.Maybe (isNothing,isJust,fromJust)
-import Control.Concurrent (MVar,newMVar,takeMVar,putMVar)
+import Control.Concurrent (forkIO,MVar,newMVar,swapMVar,readMVar)
 
 type Argv = [String]
 
@@ -64,21 +64,29 @@ data InputState = InputState {
     rightAxis :: AxisState
 } deriving Show
 
-getState :: SDL.Joystick -> IO InputState
-getState js = do
-    JS.update
-    
-    let mb = fromIntegral (maxBound :: Int16) :: Float
-    [lx,ly,rx,ry] <- mapM (((/mb) . fromIntegral <$>) . JS.getAxis js) [0,1,3,2]
-    
-    return $ InputState {
-        leftAxis = (lx,-ly),
-        rightAxis = (rx,-ry)
-    }
+joystickThread :: SDL.Joystick -> IO (MVar InputState)
+joystickThread js = do
+    var <- newMVar $ InputState {
+            leftAxis = (0,0),
+            rightAxis = (0,0)
+        }
+    forkIO $ do
+        JS.update
+        let mb = fromIntegral (maxBound :: Int16) :: Float
+        [lx,ly,rx,ry] <- mapM (((/mb) . fromIntegral <$>) . JS.getAxis js) [0,1,3,2]
+        swapMVar var $ InputState {
+                leftAxis = (lx,-ly),
+                rightAxis = (rx,-ry)
+            }
+        return ()
+    return var
 
 run :: SDL.Joystick -> a -> (InputState -> a -> IO a) -> IO ()
-run js x f = (flip iterateM_ $ x) $ \x' -> do
-    (flip f $ x') =<< getState js
+run js x f = do
+    var <- joystickThread js
+    (flip iterateM_ $ x) $ \x' -> do
+        state <- readMVar var
+        f state x'
 
 iterateM_ :: (Functor m, Monad m) => (a -> m a) -> a -> m ()
 iterateM_ f x = iterateM_ f =<< f x

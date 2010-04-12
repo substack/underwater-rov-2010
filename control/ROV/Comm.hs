@@ -36,8 +36,8 @@ newComm dev = do
         commMotors = M.fromList $ zip [MLeft,MRight,MVertical] (repeat 0)
     }
 
-setMotor :: Comm -> Motor -> Float -> Comm
-setMotor comm motor power =
+setMotor :: Motor -> Float -> Comm -> Comm
+setMotor motor power comm =
     comm { commMotors = M.insert motor power (commMotors comm) }
 
 send :: Comm -> IO Comm

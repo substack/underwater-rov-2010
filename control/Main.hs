@@ -19,5 +19,8 @@ mainArgs argv = do
     
 handler :: InputState -> Comm -> IO Comm
 handler state comm = do
-    let la = leftAxis state
-    send $ setMotor comm MLeft (magnitude la)
+    let (lx,ly) = leftAxis state
+    send
+        $ setMotor MLeft lx
+        $ setMotor MRight (-lx)
+        $ comm
