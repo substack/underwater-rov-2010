@@ -38,10 +38,13 @@ setMotor :: Comm -> Motor -> Float -> Comm
 setMotor comm motor power =
     comm { commMotors = M.insert motor power (commMotors comm) }
 
-send :: Comm -> IO ()
+send :: Comm -> IO Comm
 send comm@Comm{ commH = fh } = do
     rs <- replicateM 3 $ randomRIO (0,1)
-    hPut fh $ runPut (putWord8 $ motorByte comm rs)
+    let byte = motorByte comm rs
+    print byte
+    hPut fh $ runPut (putWord8 byte)
+    return comm
 
 motorByte :: Comm -> [Float] -> Word8
 motorByte Comm{ commMotors = motors } rs = byte where

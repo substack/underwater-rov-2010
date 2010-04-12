@@ -53,7 +53,11 @@ angle :: AxisState -> Float
 angle (x,y) = atan2 y x
 
 magnitude :: AxisState -> Float
-magnitude (x,y) = sqrt $ x ** 2 + y ** 2
+magnitude (x,y) = dist (x,y) * scale
+    where
+        dist (x,y) = sqrt $ x ** 2 + y ** 2
+        scale = dist ((cos a)**2, (sin a)**2)
+        a = angle (abs x, abs y)
 
 data InputState = InputState {
     leftAxis :: AxisState,
