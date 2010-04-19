@@ -7,7 +7,7 @@ typedef unsigned char byte;
 __IDLOC(1);
 __CONFIG(INTIO & WDTDIS & MCLRDIS & BORDIS & UNPROTECT & PWRTEN & LVPDIS);
 
-// wait for integer deciseconds
+// wait for dsec deciseconds
 void wait_dsec(byte dsec) {
     byte i,j,k;
     for (i = dsec; i != 0; i--) // tenths of seconds
@@ -15,12 +15,27 @@ void wait_dsec(byte dsec) {
             for (k = 250; k != 0; k--) NOP(); // 1 ms
 }
 
-// wait for integer centiseconds
+// wait for csec centiseconds
 void wait_csec(byte csec) {
     byte i,j,k;
     for (i = csec; i != 0; i--) // hundredths of seconds
         for (j = 10; j != 0; j--) // 10 ms = 0.01 sec
             for (k = 250; k != 0; k--) NOP(); // 1 ms
+}
+
+// wait for msec milliseconds
+void wait_msec(byte msec) {
+    byte i;
+    for (; msec != 0; msec--)
+        for (i = 250; i != 0; i--) NOP(); // 1 ms
+}
+
+// wait for msec milliseconds plus (frac/256) milliseconds
+void wait_msecf(byte msec, byte frac) {
+    byte i;
+    for (; msec != 0; msec--)
+        for (i = 250; i != 0; i--) NOP(); // 1 ms
+    for (frac = 250; frac != 0; frac--) NOP(); // 1 ms
 }
 
 void serial_init(void) {

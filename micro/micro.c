@@ -3,6 +3,8 @@
 
 #define CMD_PRELUDE 0x50
 #define CMD_SET_MOTORS 0x40
+#define CMD_SET_SERVO_0 0x41
+#define CMD_SET_SERVO_1 0x42
 #define CMD_OK 0x80
 
 void main() {
@@ -25,7 +27,22 @@ void main() {
     init();
     
     while (1) {
-        PORTA = serial_rx();
-        serial_tx(CMD_OK);
+        byte cmd = serial_rx();
+        switch (cmd) {
+            case CMD_SET_MOTORS :
+                PORTA = serial_rx();
+                serial_tx(CMD_OK);
+                break;
+            case CMD_SET_SERVO_0 :
+                PORTC = 1;
+                wait_msecf(1, serial_rx());
+                PORTC = 0;
+                break;
+            case CMD_SET_SERVO_1 :
+                PORTC = 2;
+                wait_msecf(1, serial_rx());
+                PORTC = 0;
+                break;
+        }
     }
 }
