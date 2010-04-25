@@ -37,11 +37,13 @@ void main() {
                 PORTC = 1;
                 wait_msecf(1, serial_rx());
                 PORTC = 0;
+                serial_tx(CMD_OK);
                 break;
             case CMD_SET_SERVO_1 :
                 PORTC = 2;
                 wait_msecf(1, serial_rx());
                 PORTC = 0;
+                serial_tx(CMD_OK);
                 break;
         }
     }

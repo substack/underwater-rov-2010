@@ -1,5 +1,6 @@
 module ROV.Comm (
-    Comm(..), Motor(..), newComm, setMotor, send
+    Comm(..), Motor(..), Servo(..),
+    newComm, setMotor, setServo, send
 ) where
 
 import Data.Bits ((.|.),bit)
@@ -13,17 +14,28 @@ import Data.Binary.Put (runPut,putWord8)
 import Data.Binary.Get (runGet,getWord8)
 import Data.ByteString.Lazy (ByteString,hPut,hGet)
 
-import Control.Monad (replicateM)
+import Control.Monad (replicateM,when)
 import Control.Applicative ((<$>))
 import System.Random (randomRIO)
 
 data Comm = Comm {
     commH :: File.Handle,
-    commMotors :: M.Map Motor Float
+    commMotors :: M.Map Motor Float,
+    commServos :: M.Map Servo Float
 }
 
 data Motor = MLeft | MRight | MVertical
     deriving (Show,Eq,Ord)
+
+data Servo = SPinchers | SPitch
+    deriving (Show,Eq,Ord)
+
+data Constant = SetMotors | SetServo Int
+
+constant :: Constant -> Word8
+constant SetMotors = 0x40
+constant (SetServo 0) = 0x41
+constant (SetServo 1) = 0x42
 
 newComm :: FilePath -> IO Comm
 newComm dev = do
@@ -33,6 +45,7 @@ newComm dev = do
     system $ "stty raw clocal 57600 cs8 -parenb parodd cstopb -echo < " ++ dev
     return $ Comm {
         commH = fh,
+        commServos = M.fromList $ zip [SPinchers,SPitch] (repeat 0.5),
         commMotors = M.fromList $ zip [MLeft,MRight,MVertical] (repeat 0)
     }
 
@@ -40,15 +53,28 @@ setMotor :: Motor -> Float -> Comm -> Comm
 setMotor motor power comm =
     comm { commMotors = M.insert motor power (commMotors comm) }
 
+setServo :: Servo -> Float -> Comm -> Comm
+setServo servo value comm =
+    comm { commServos = M.insert servo value (commServos comm) }
+
 send :: Comm -> IO Comm
-send comm@Comm{ commH = fh } = do
+send comm = do
     rs <- replicateM 3 $ randomRIO (0,1)
-    let byte = motorByte comm rs
-    putStrLn $ "send " ++ show byte
-    hPut fh $ runPut (putWord8 byte)
-    res <- runGet getWord8 <$> hGet fh 1
-    putStrLn $ "recv " ++ show res
+    mapM (sendCmd comm)
+        $ (SetMotors, motorByte comm rs)
+        : (SetServo 0, round $ (*256) $ (commServos comm M.! SPitch))
+        : (SetServo 1, round $ (*256) $ (commServos comm M.!  SPinchers))
+        : []
     return comm
+
+sendCmd :: Comm -> (Constant,Word8) -> IO ()
+sendCmd comm@Comm{ commH = fh } (c,byte) = do
+    hPut fh $ runPut $ do
+        putWord8 $ constant c
+        putWord8 byte
+    res <- runGet getWord8 <$> hGet fh 1
+    when (res /= 0x80)
+        $ putStrLn "retry" >> sendCmd comm (c,byte)
 
 motorByte :: Comm -> [Float] -> Word8
 motorByte Comm{ commMotors = motors } rs = byte where
