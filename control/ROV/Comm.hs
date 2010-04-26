@@ -63,13 +63,14 @@ send comm = do
     rs <- replicateM 3 $ randomRIO (0,1)
     mapM (sendCmd comm)
         $ (SetMotors, motorByte comm rs)
-        : (SetServo 0, round $ (*256) $ (commServos comm M.! SPitch))
-        : (SetServo 1, round $ (*256) $ (commServos comm M.! SPinchers))
+        : (SetServo 0, round $ (*256) $ (commServos comm M.! SPinchers))
+        : (SetServo 1, round $ (*256) $ (commServos comm M.! SPitch))
         : []
     return comm
 
 sendCmd :: Comm -> (Constant,Word8) -> IO ()
 sendCmd comm@Comm{ commH = fh } (c,byte) = do
+    print (c,byte)
     hPut fh $ runPut $ do
         putWord8 $ constant c
         putWord8 byte
