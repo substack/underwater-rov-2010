@@ -52,13 +52,16 @@ newComm dev = do
 
 -- TODO: use the state monad
 
+
 setMotor :: Motor -> Float -> Comm -> Comm
 setMotor motor power comm =
-    comm { commMotors = M.insert motor power (commMotors comm) }
+    comm { commMotors = M.insert motor (clamp power) (commMotors comm) }
+    where clamp = max (-1) . min 1
 
 setServo :: Servo -> Float -> Comm -> Comm
 setServo servo value comm =
-    comm { commServos = M.insert servo value (commServos comm) }
+    comm { commServos = M.insert servo (clamp value) (commServos comm) }
+    where clamp = max 0 . min 1
 
 send :: Comm -> IO Comm
 send comm = do
