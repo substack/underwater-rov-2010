@@ -20,13 +20,18 @@ mainArgs argv = do
     
 handler :: InputState -> Comm -> IO Comm
 handler state comm = do
-    let (lx,ly) = (axes state) M.! LeftAxis
-        (rx,ry) = (axes state) M.! RightAxis
-        (dx,dy) = (axes state) M.! DPad
+    let
+        aTup = (M.!) (axes state)
+        (lx,ly) = aTup LeftAxis
+        (rx,ry) = aTup RightAxis
+        (dx,dy) = aTup DPad
+        servoValue = (M.!) (commServos comm)
+        button = (M.!) (buttons state)
+    
     send
         $ setMotor MLeft (lx + ly)
         $ setMotor MRight (-lx + ly)
         $ setMotor MVertical ry
-        $ setServo SPitch ((1 - dy) / 2)
-        $ setServo SPinchers ((dx + 1) / 2)
+        $ setServo SPitch (servoValue SPitch + dy / 10.0)
+        $ setServo SPinchers (servoValue SPinchers + dx / 10.0)
         $ comm

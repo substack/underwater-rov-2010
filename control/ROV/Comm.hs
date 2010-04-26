@@ -50,6 +50,8 @@ newComm dev = do
         commMotors = M.fromList $ zip [MLeft,MRight,MVertical] (repeat 0)
     }
 
+-- TODO: use the state monad
+
 setMotor :: Motor -> Float -> Comm -> Comm
 setMotor motor power comm =
     comm { commMotors = M.insert motor power (commMotors comm) }
