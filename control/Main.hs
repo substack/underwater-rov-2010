@@ -20,7 +20,6 @@ mainArgs argv = do
 handler :: InputState -> Comm -> IO Comm
 handler state comm = do
     let ((lx,ly),(rx,ry)) = leftAxis &&& rightAxis $ state
-    print (lx,ry)
     send
         {-
         $ setMotor MLeft (lx + ly)

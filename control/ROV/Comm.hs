@@ -31,6 +31,7 @@ data Servo = SPinchers | SPitch
     deriving (Show,Eq,Ord)
 
 data Constant = SetMotors | SetServo Int
+    deriving (Show,Eq,Ord)
 
 constant :: Constant -> Word8
 constant SetMotors = 0x40
@@ -63,7 +64,7 @@ send comm = do
     mapM (sendCmd comm)
         $ (SetMotors, motorByte comm rs)
         : (SetServo 0, round $ (*256) $ (commServos comm M.! SPitch))
-        : (SetServo 1, round $ (*256) $ (commServos comm M.!  SPinchers))
+        : (SetServo 1, round $ (*256) $ (commServos comm M.! SPinchers))
         : []
     return comm
 
