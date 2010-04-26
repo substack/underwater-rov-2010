@@ -20,6 +20,9 @@ mainArgs argv = do
 handler :: InputState -> Comm -> IO Comm
 handler state comm = do
     let ((lx,ly),(rx,ry)) = leftAxis &&& rightAxis $ state
+    print state
+    return comm
+    {-
     send
         $ setMotor MLeft (lx + ly)
         $ setMotor MRight (-lx + ly)
@@ -27,3 +30,4 @@ handler state comm = do
         $ setServo SPitch ((1 - ry) / 2)
         $ setServo SPinchers ((lx + 1) / 2)
         $ comm
+    -}

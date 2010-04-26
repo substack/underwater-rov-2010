@@ -13,6 +13,9 @@ import Control.Applicative ((<$>))
 
 import Data.Maybe (isNothing,isJust,fromJust)
 import Control.Concurrent (forkIO,MVar,newMVar,swapMVar,readMVar)
+import Data.List.Split (splitEvery)
+
+import qualified Data.Map as M
 
 type Argv = [String]
 
@@ -59,24 +62,39 @@ magnitude (x,y) = dist (x,y) * scale
         scale = dist ((cos a)**2, (sin a)**2)
         a = angle (abs x, abs y)
 
+data Axis = LeftAxis | RightAxis | DPad
+    deriving (Show,Ord,Eq)
+data Button
+    = Button1 | Button2 | Button3 | Button4 | Button5 | Button6
+    | ButtonL | ButtonR
+    | ButtonRightAxis | ButtonRed | ButtonDigital
+    deriving (Show,Ord,Eq)
+
+buttonList = Button1 : Button2 : Button3 : Button4 : Button5 : Button6
+    : ButtonL : ButtonR : ButtonRightAxis : ButtonRed : ButtonDigital : []
+axisList = LeftAxis : RightAxis : DPad : []
+
 data InputState = InputState {
-    leftAxis :: AxisState,
-    rightAxis :: AxisState
-} deriving Show
+    axes :: M.Map Axis AxisState,
+    buttons :: M.Map Button Bool
+} deriving (Show,Ord,Eq)
 
 joystickThread :: SDL.Joystick -> IO (MVar InputState)
 joystickThread js = do
     var <- newMVar $ InputState {
-            leftAxis = (0,0),
-            rightAxis = (0,0)
+            axes = M.fromList . zip [LeftAxis,RightAxis,DPad] $ repeat (0,0),
+            buttons = M.fromList $ zip buttonList (repeat False)
         }
     forkIO $ forever $ do
         JS.update
         let mb = fromIntegral (maxBound :: Int16) :: Float
-        [lx,ly,rx,ry] <- mapM (((/mb) . fromIntegral <$>) . JS.getAxis js) [0,1,3,2]
+        axisData <- mapM (((/mb) . fromIntegral <$>) . JS.getAxis js)
+            [0,1,3,2,4,5]
+        buttonData <- mapM (JS.getButton js) [0..11]
         swapMVar var $ InputState {
-                leftAxis = (lx,-ly),
-                rightAxis = (rx,-ry)
+                axes = M.fromList $ zip axisList
+                    [ (x,y) | [x,y] <- splitEvery 2 axisData ],
+                buttons = M.fromList $ zip buttonList buttonData
             }
         return ()
     return var
