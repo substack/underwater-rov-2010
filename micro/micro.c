@@ -27,6 +27,7 @@ void main() {
     init();
     
     while (1) {
+        byte b;
         byte cmd = serial_rx();
         switch (cmd) {
             case CMD_SET_MOTORS :
@@ -34,14 +35,16 @@ void main() {
                 serial_tx(CMD_OK);
                 break;
             case CMD_SET_SERVO_0 :
-                PORTC = 1;
-                wait_msecf(1, serial_rx());
+                b = serial_rx();
+                PORTC = 0x1;
+                wait_msecf(1,b);
                 PORTC = 0;
                 serial_tx(CMD_OK);
                 break;
             case CMD_SET_SERVO_1 :
-                PORTC = 2;
-                wait_msecf(1, serial_rx());
+                b = serial_rx();
+                PORTC = 0x2;
+                wait_msecf(1,b);
                 PORTC = 0;
                 serial_tx(CMD_OK);
                 break;
