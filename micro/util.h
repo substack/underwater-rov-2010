@@ -32,11 +32,11 @@ void wait_msec(byte msec) {
 
 // wait for msec milliseconds plus (frac/256) milliseconds
 void wait_msecf(byte msec, byte frac) {
-    byte i, j, msec_;
+    byte i, j, msec_, frac_;
     for (i = 0; i < 2; i++) {
         for (msec_ = msec; msec_ != 0; msec_--)
             for (j = 250; j != 0; j--) NOP(); // 1 ms
-        for (; frac != 0; frac--) NOP(); // 1 ms
+        for (frac_ = frac; frac_ != 0; frac_--) NOP(); // 1 ms
     }
 }
 
