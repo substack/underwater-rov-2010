@@ -1,5 +1,5 @@
 module ROV.Control (
-    InputState(..), AxisState,
+    InputState(..), AxisState, Axis(..), Button(..),
     getJoystick, run, angle, magnitude,
 ) where
 
