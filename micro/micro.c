@@ -7,6 +7,9 @@
 #define CMD_SET_SERVO_1 0x42
 #define CMD_OK 0x80
 
+static byte SERVO_0 = 0;
+static byte SERVO_1 = 0;
+
 void main() {
     TRISA = 0;
     TRISB = 0;
@@ -46,19 +49,19 @@ void main() {
                 serial_tx(CMD_OK);
                 break;
             case CMD_SET_SERVO_0 :
-                b = serial_rx();
-                PORTC = 0x1;
-                wait_msecf(1,b);
-                PORTC = 0;
+                SERVO_0 = serial_rx();
                 serial_tx(CMD_OK);
                 break;
             case CMD_SET_SERVO_1 :
-                b = serial_rx();
-                PORTC = 0x2;
-                wait_msecf(1,b);
-                PORTC = 0;
+                SERVO_1 = serial_rx();
                 serial_tx(CMD_OK);
                 break;
         }
+        
+        PORTC = 0x1;
+        wait_msecf(1,SERVO_0);
+        PORTC = 0x2;
+        wait_msecf(1,SERVO_1);
+        PORTC = 0;
     }
 }
