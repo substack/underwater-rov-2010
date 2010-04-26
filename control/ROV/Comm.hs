@@ -52,7 +52,6 @@ newComm dev = do
 
 -- TODO: use the state monad
 
-
 setMotor :: Motor -> Float -> Comm -> Comm
 setMotor motor power comm =
     comm { commMotors = M.insert motor (clamp power) (commMotors comm) }
