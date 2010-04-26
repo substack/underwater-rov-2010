@@ -63,8 +63,8 @@ send comm = do
     rs <- replicateM 3 $ randomRIO (0,1)
     mapM (sendCmd comm)
         $ (SetMotors, motorByte comm rs)
-        : (SetServo 0, round $ (*255) $ (commServos comm M.! SPinchers))
-        : (SetServo 1, round $ (*255) $ (commServos comm M.! SPitch))
+        : (SetServo 0, round $ (*255) $ (commServos comm M.! SPitch))
+        : (SetServo 1, round $ (*255) $ (commServos comm M.! SPinchers))
         : []
     return comm
 

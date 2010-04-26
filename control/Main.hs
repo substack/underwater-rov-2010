@@ -24,6 +24,6 @@ handler state comm = do
         $ setMotor MLeft (lx + ly)
         $ setMotor MRight (-lx + ly)
         $ setMotor MVertical ry
-        $ setServo SPinchers ((ry + 1) / 2)
-        $ setServo SPitch ((lx + 1) / 2)
+        $ setServo SPitch ((1 - ry) / 2)
+        $ setServo SPinchers ((lx + 1) / 2)
         $ comm
