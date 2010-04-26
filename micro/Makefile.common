@@ -1,6 +1,7 @@
 # UNIX Makefile for PICL compiler
 
-OPTS=-Zg -O
+#OPTS=-Zg -O
+OPTS=-Zg
 
 ### 12F 8-pin chips
 # CPU=--chip=12F675    # For PICClite 9.60 (works)
