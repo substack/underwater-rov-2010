@@ -45,7 +45,11 @@ getMotor motor = f <$> get where
 
 modifyMotor :: Motor -> (Float -> Float) -> ROV ()
 modifyMotor motor f = modify g where
-    g comm = comm { commMotors = M.adjust f motor (commMotors comm) }
+    g comm = comm { commMotors = motors } where
+        motors = M.adjust (clamp . f) motor (commMotors comm)
+        clamp = if isThruster motor
+            then max (-1) . min 1
+            else max 0 . min 1
 
 setMotor :: Motor -> Float -> ROV ()
 setMotor motor power = modify f where
