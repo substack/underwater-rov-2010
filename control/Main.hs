@@ -1,7 +1,7 @@
 module Main where
 
-import ROV.Control
-import ROV.Comm
+import ROV
+
 import System.Environment (getArgs)
 import qualified Data.Map as M
 import Control.Monad.State.Lazy
@@ -17,10 +17,10 @@ mainArgs :: Argv -> IO ()
 mainArgs argv = do
     js <- getJoystick argv
     comm <- newComm "/dev/ttyUSB0"
-    run js comm handler
+    runControl js comm handler
     
 handler :: InputState -> Comm -> IO Comm
-handler state comm = execROV comm $ do
+handler state comm = exec comm $ do
     let
         aTup = (M.!) (axes state)
         (lx,ly) = aTup LeftAxis

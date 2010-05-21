@@ -1,6 +1,6 @@
 module ROV.Control (
     InputState(..), AxisState, Axis(..), Button(..),
-    getJoystick, run, angle, magnitude,
+    getJoystick, runControl, angle, magnitude,
 ) where
 
 import qualified Graphics.UI.SDL as SDL
@@ -99,8 +99,8 @@ joystickThread js = do
         return ()
     return var
 
-run :: SDL.Joystick -> a -> (InputState -> a -> IO a) -> IO ()
-run js x f = do
+runControl :: SDL.Joystick -> a -> (InputState -> a -> IO a) -> IO ()
+runControl js x f = do
     var <- joystickThread js
     (flip iterateM_ $ x) $ \x' -> do
         state <- readMVar var
