@@ -18,6 +18,8 @@ import Control.Monad (replicateM,when)
 import Control.Applicative ((<$>))
 import System.Random (randomRIO)
 
+import System.IO (hFlush,stdout)
+
 data Comm = Comm {
     commH :: File.Handle,
     commMotors :: M.Map Motor Float,
@@ -65,16 +67,19 @@ setServo servo value comm =
 send :: Comm -> IO Comm
 send comm = do
     rs <- replicateM 3 $ randomRIO (0,1)
-    mapM (sendCmd comm)
-        $ (SetMotors, motorByte comm rs)
-        : (SetServo 0, round $ (*255) $ (commServos comm M.! SPitch))
-        : (SetServo 1, round $ (*255) $ (commServos comm M.! SPinchers))
-        : []
+    let
+        cmds =
+            (SetMotors, motorByte comm rs)
+            : (SetServo 0, round $ (*255) $ (commServos comm M.! SPitch))
+            : (SetServo 1, round $ (*255) $ (commServos comm M.! SPinchers))
+            : []
+    mapM (sendCmd comm) cmds
+    print cmds
+    hFlush stdout
     return comm
 
 sendCmd :: Comm -> (Constant,Word8) -> IO ()
 sendCmd comm@Comm{ commH = fh } (c,byte) = do
-    print (c,byte)
     hPut fh $ runPut $ do
         putWord8 $ constant c
         putWord8 byte
@@ -93,9 +98,9 @@ motorByte Comm{ commMotors = motors } rs = byte where
     
     setBit :: Motor -> Word8
     setBit m = bit $ case (m,(motors M.! m) > 0) of
-        (MLeft,True) -> 0
-        (MLeft,False) -> 1
-        (MRight,True) -> 2
-        (MRight,False) -> 3
+        (MLeft,True) -> 2
+        (MLeft,False) -> 3
+        (MRight,True) -> 0
+        (MRight,False) -> 1
         (MVertical,True) -> 5
         (MVertical,False) -> 4
