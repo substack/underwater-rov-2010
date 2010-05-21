@@ -1,6 +1,6 @@
 module ROV.Comm (
-    Comm(..), Motor(..), Servo(..),
-    newComm, setMotor, setServo, send
+    Comm(..), Motor(..), Servo(..), ROV(..),
+    newComm, setMotor, setServo, send, runROV
 ) where
 
 import Data.Bits ((.|.),bit)
@@ -14,11 +14,13 @@ import Data.Binary.Put (runPut,putWord8)
 import Data.Binary.Get (runGet,getWord8)
 import Data.ByteString.Lazy (ByteString,hPut,hGet)
 
-import Control.Monad (replicateM,when)
+import Control.Monad (replicateM,when,join)
 import Control.Applicative ((<$>))
 import System.Random (randomRIO)
 
 import System.IO (hFlush,stdout)
+
+import Control.Monad.State.Lazy (State(..),MonadState(..),modify)
 
 data Comm = Comm {
     commH :: File.Handle,
@@ -52,17 +54,25 @@ newComm dev = do
         commMotors = M.fromList $ zip [MLeft,MRight,MVertical] (repeat 0)
     }
 
--- TODO: use the state monad
+type ROV a = State Comm a
 
-setMotor :: Motor -> Float -> Comm -> Comm
-setMotor motor power comm =
-    comm { commMotors = M.insert motor (clamp power) (commMotors comm) }
-    where clamp = max (-1) . min 1
+runROV :: Comm -> ROV a -> IO a
+runROV comm f = do
+    let (value,comm') = runState f comm
+    send comm'
+    return value
 
-setServo :: Servo -> Float -> Comm -> Comm
-setServo servo value comm =
-    comm { commServos = M.insert servo (clamp value) (commServos comm) }
-    where clamp = max 0 . min 1
+setMotor :: Motor -> Float -> ROV ()
+setMotor motor power = modify f where
+    f comm = comm { commMotors = motors } where
+        motors = M.insert motor (clamp power) (commMotors comm)
+        clamp = max (-1) . min 1
+
+setServo :: Servo -> Float -> ROV ()
+setServo servo value = modify f where
+    f comm = comm { commServos = servos } where
+        servos = M.insert servo (clamp value) (commServos comm)
+        clamp = max 0 . min 1
 
 send :: Comm -> IO Comm
 send comm = do
