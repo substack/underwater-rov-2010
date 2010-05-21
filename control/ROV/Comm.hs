@@ -1,6 +1,7 @@
 module ROV.Comm (
     Comm(..), Motor(..), Servo(..), ROV(..),
-    newComm, setMotor, setServo, send, runROV
+    newComm, setMotor, setServo, send,
+    runROV, execROV, evalROV,
 ) where
 
 import Data.Bits ((.|.),bit)
@@ -56,11 +57,17 @@ newComm dev = do
 
 type ROV a = State Comm a
 
-runROV :: Comm -> ROV a -> IO a
+evalROV :: Comm -> ROV a -> IO a
+evalROV = ((fst <$>) .) . runROV
+
+execROV :: Comm -> ROV a -> IO Comm
+execROV = ((snd <$>) .) . runROV
+
+runROV :: Comm -> ROV a -> IO (a,Comm)
 runROV comm f = do
-    let (value,comm') = runState f comm
+    let r@(value,comm') = runState f comm
     send comm'
-    return value
+    return r
 
 setMotor :: Motor -> Float -> ROV ()
 setMotor motor power = modify f where
