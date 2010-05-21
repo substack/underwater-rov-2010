@@ -5,7 +5,6 @@ import ROV
 import System.Environment (getArgs)
 import qualified Data.Map as M
 import Control.Monad.State.Lazy
-
 import Control.Arrow ((&&&))
 
 main :: IO ()
@@ -20,17 +19,16 @@ mainArgs argv = do
     runControl js comm handler
     
 handler :: InputState -> Comm -> IO Comm
-handler state comm = exec comm $ do
+handler state comm = execROV comm $ do
     let
         aTup = (M.!) (axes state)
         (lx,ly) = aTup LeftAxis
         (rx,ry) = aTup RightAxis
         (dx,dy) = aTup DPad
-        servoValue = (M.!) (commServos comm)
         button = (M.!) (buttons state)
     
-    setMotor MLeft (lx + ly)
-    setMotor MRight (-lx + ly)
-    setMotor MVertical ry
-    setServo SPitch (servoValue SPitch + dy / 8.0)
-    setServo SPinchers (servoValue SPinchers + dx / 2.0)
+    ML @= lx + ly
+    MR @= -lx + ly
+    MV @= ry
+    Pitch @+ dy / 8.0
+    Pinchers @+ dx / 2.0

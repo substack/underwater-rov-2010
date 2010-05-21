@@ -1,6 +1,5 @@
 module ROV.Comm (
-    Comm(..), Motor(..), Servo(..),
-    newComm, send,
+    Comm(..), Motor(..), newComm, send, isServo, isThruster
 ) where
 
 import Data.Bits ((.|.),bit)
@@ -22,21 +21,24 @@ import System.IO (hFlush,stdout)
 
 data Comm = Comm {
     commH :: File.Handle,
-    commMotors :: M.Map Motor Float,
-    commServos :: M.Map Servo Float
+    commMotors :: M.Map Motor Float
 }
 
-data Motor = MLeft | MRight | MVertical
+data Motor = ML | MR | MV | Pinchers | Pitch
     deriving (Show,Eq,Ord)
 
-data Servo = SPinchers | SPitch
-    deriving (Show,Eq,Ord)
+isServo Pinchers = True 
+isServo Pitch = True
+isServo _ = False
 
-data Constant = SetMotors | SetServo Int
+isThruster = not . isServo
+
+
+data Constant = SetThrusters | SetServo Int
     deriving (Show,Eq,Ord)
 
 constant :: Constant -> Word8
-constant SetMotors = 0x40
+constant SetThrusters = 0x40
 constant (SetServo 0) = 0x41
 constant (SetServo 1) = 0x42
 
@@ -48,18 +50,19 @@ newComm dev = do
     system $ "stty raw clocal 57600 cs8 -parenb parodd cstopb -echo < " ++ dev
     return $ Comm {
         commH = fh,
-        commServos = M.fromList $ zip [SPinchers,SPitch] (repeat 0.5),
-        commMotors = M.fromList $ zip [MLeft,MRight,MVertical] (repeat 0)
+        commMotors = M.fromList $ zip
+            [Pinchers,Pitch,ML,MR,MV]
+            [0.5,0.5,0,0,0]
     }
 
 send :: Comm -> IO Comm
 send comm = do
     rs <- replicateM 3 $ randomRIO (0,1)
-    let
+    let motors = commMotors comm
         cmds =
-            (SetMotors, motorByte comm rs)
-            : (SetServo 0, round $ (*255) $ (commServos comm M.! SPitch))
-            : (SetServo 1, round $ (*255) $ (commServos comm M.! SPinchers))
+            (SetThrusters, motorByte comm rs)
+            : (SetServo 0, round $ (*255) $ motors M.! Pitch)
+            : (SetServo 1, round $ (*255) $ motors M.! Pinchers)
             : []
     mapM (sendCmd comm) cmds
     print cmds
@@ -80,15 +83,15 @@ motorByte Comm{ commMotors = motors } rs = byte where
     byte = foldl (.|.) 0
         $ map (setBit . fst)
         $ filter enoughPower
-        $ zip [MLeft,MRight,MVertical] rs
+        $ zip [ML,MR,MV] rs
     enoughPower :: (Motor,Float) -> Bool
     enoughPower (m,r) = (abs $ motors M.! m) > r
     
     setBit :: Motor -> Word8
     setBit m = bit $ case (m,(motors M.! m) > 0) of
-        (MLeft,True) -> 2
-        (MLeft,False) -> 3
-        (MRight,True) -> 0
-        (MRight,False) -> 1
-        (MVertical,True) -> 5
-        (MVertical,False) -> 4
+        (ML,True) -> 2
+        (ML,False) -> 3
+        (MR,True) -> 0
+        (MR,False) -> 1
+        (MV,True) -> 5
+        (MV,False) -> 4
