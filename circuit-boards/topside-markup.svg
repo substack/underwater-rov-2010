@@ -48,7 +48,7 @@
      objecttolerance="10"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="3.2323351"
+     inkscape:zoom="1.1428031"
      inkscape:cx="821.32657"
      inkscape:cy="433.00411"
      inkscape:document-units="in"
@@ -5204,7 +5204,7 @@
          id="tspan6307"
          sodipodi:role="line"
          x="549.16205"
-         y="218.79292">7809 VOLTAGE REGULATOR</tspan></text>
+         y="218.79292">7805 VOLTAGE REGULATOR</tspan></text>
     <rect
        transform="matrix(0,1,-1,0,0,0)"
        style="fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#ff0027;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.76651982"
@@ -5304,7 +5304,7 @@
          y="486.29929"
          x="453.27151"
          sodipodi:role="line"
-         id="tspan6337">7809 VOLTAGE REGULATOR</tspan></text>
+         id="tspan6337">7805 VOLTAGE REGULATOR</tspan></text>
     <path
        sodipodi:nodetypes="cc"
        style="fill:none;fill-rule:evenodd;stroke:#ff0027;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.76862745"
