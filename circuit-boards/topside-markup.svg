@@ -48,9 +48,9 @@
      objecttolerance="10"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="2.2856061"
-     inkscape:cx="546.192"
-     inkscape:cy="437.35577"
+     inkscape:zoom="3.2323351"
+     inkscape:cx="821.32657"
+     inkscape:cy="433.00411"
      inkscape:document-units="in"
      inkscape:current-layer="layer1"
      width="11.69in"
@@ -5440,5 +5440,47 @@
        d="M 456.96481,302.32075 L 429.29328,289.28905"
        style="fill:none;fill-rule:evenodd;stroke:#ff0027;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.76862745"
        sodipodi:nodetypes="cc" />
+    <path
+       id="path11440"
+       d="M 775.17141,305.09224 L 813.57241,305.10135"
+       style="fill:none;fill-rule:evenodd;stroke:#ff0027;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.76862745"
+       sodipodi:nodetypes="cc" />
+    <path
+       sodipodi:nodetypes="cc"
+       style="fill:none;fill-rule:evenodd;stroke:#ff0027;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.76862745"
+       d="M 775.17141,313.75471 L 813.57241,313.76382"
+       id="path11442" />
+    <path
+       id="path11444"
+       d="M 775.17141,322.72655 L 813.57241,322.73566"
+       style="fill:none;fill-rule:evenodd;stroke:#ff0027;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.76862745"
+       sodipodi:nodetypes="cc" />
+    <path
+       sodipodi:nodetypes="cc"
+       style="fill:none;fill-rule:evenodd;stroke:#ff0027;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.76862745"
+       d="M 775.17141,331.69839 L 813.57241,331.7075"
+       id="path11446" />
+    <text
+       xml:space="preserve"
+       style="font-size:7px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;text-anchor:start;fill:#2b0000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:FreeSans;-inkscape-font-specification:Sans Bold"
+       x="815.60449"
+       y="307.44821"
+       id="text11448"><tspan
+         id="tspan11450"
+         sodipodi:role="line"
+         x="815.60449"
+         y="307.44821">SIGNAL GND</tspan><tspan
+         id="tspan11452"
+         sodipodi:role="line"
+         x="815.60449"
+         y="316.19821">VIDEO 1</tspan><tspan
+         sodipodi:role="line"
+         x="815.60449"
+         y="324.94821"
+         id="tspan11454">AUDIO</tspan><tspan
+         sodipodi:role="line"
+         x="815.60449"
+         y="333.69821"
+         id="tspan11456">VIDEO 0</tspan></text>
   </g>
 </svg>
