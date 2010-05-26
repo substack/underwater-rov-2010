@@ -40,8 +40,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.4"
-     inkscape:cx="128.38263"
-     inkscape:cy="167.64458"
+     inkscape:cx="161.23977"
+     inkscape:cy="179.78744"
      inkscape:document-units="px"
      inkscape:current-layer="g7705"
      showgrid="false"
@@ -825,7 +825,7 @@
            id="tspan10073"
            y="37.957047"
            x="-35.804016"
-           sodipodi:role="line">SERVO GND</tspan><tspan
+           sodipodi:role="line">SIGNAL +12v</tspan><tspan
            y="50.457047"
            x="-35.804016"
            sodipodi:role="line"
