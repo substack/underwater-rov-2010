@@ -7,10 +7,22 @@
 #define CMD_SET_SERVO_1 0x42
 #define CMD_OK 0x80
 
-static byte SERVO_0 = 0;
-static byte SERVO_1 = 0;
-
+byte motor_bit(byte t, byte x) {
+    byte y = x % 128;
+    byte h = x < 128;
+    if (x < 64) {
+        return ((t % (128 / y)) != 0) << h;
+    }
+    else {
+        return (t % (128 / (127 - y)) == 0) << h;
+    }
+}
+        
 void main() {
+    byte SERVO_0 = 0, SERVO_1 = 0;
+    byte MOTOR_L = 0, MOTOR_R = 0, MOTOR_V = 0;
+    byte T = 0;
+    
     TRISA = 0;
     TRISB = 0;
     TRISC = 1 << 7; // RC7 to 1 for serial RX
@@ -30,11 +42,13 @@ void main() {
     init();
     
     while (1) {
-        byte b, i, j;
         byte cmd = serial_rx();
+        
         switch (cmd) {
             case CMD_SET_MOTORS :
-                PORTA = serial_rx();
+                MOTOR_L = serial_rx();
+                MOTOR_R = serial_rx();
+                MOTOR_V = serial_rx();
                 serial_tx(CMD_OK);
                 break;
             case CMD_SET_SERVO_0 :
@@ -46,6 +60,14 @@ void main() {
                 serial_tx(CMD_OK);
                 break;
         }
+        
+        PORTA
+            = (motor_bit(T,MOTOR_L) << 0)
+            | (motor_bit(T,MOTOR_R) << 2)
+            | (motor_bit(T,MOTOR_V) << 4)
+        ;
+        
+        T ++;
         
         PORTC = 0x1;
         wait_msecf(1,SERVO_0);
