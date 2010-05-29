@@ -56,6 +56,31 @@ void serial_init(void) {
     
     ADDEN=0; /* don't do address detection */
     ABDEN=0; /* don't do auto-baud-detect */
+    
+    TRISC = 1 << 7; // RC7 to 1 for serial RX
+}
+
+void use_analog(byte ans) {
+    switch (ans) {
+        case 0 : TRISA0 = 1; break;
+        case 1 : TRISA1 = 1; break;
+        case 2 : TRISA2 = 1; break;
+        case 3 : TRISA3 = 1; break;
+        case 4 : TRISA5 = 1; break;
+        case 5 : TRISE0 = 1; break;
+        case 6 : TRISE1 = 1; break;
+        case 7 : TRISE2 = 1; break;
+    }
+    ADFM = 0;
+    VCFG = 0;
+    ADON = 1;
+}
+
+byte read_analog(byte ans) {
+    ANSEL = 1 << ans;
+    GODONE = 1;
+    while (GODONE) {}
+    return ADRESH;
 }
 
 void init(void) {
@@ -63,6 +88,20 @@ void init(void) {
     // perl -pe'($_)=/(\w+IE\b)/ and ($_="    $_ = 0;\n")' pic16f887.h
     RBIE = RABIE = T0IE = PEIE = GIE = TMR1IE = TMR2IE = CCP1IE = SSPIE = TXIE =
     RCIE = ADIE = CCP2IE = ULPWUIE = BCLIE = EEIE = C1IE = C2IE = OSFIE = 0;
+    
+    // Everything off
+    PORTA = 0x00;
+    PORTB = 0x00;
+    PORTC = 0x00;
+    PORTD = 0x00;
+    PORTE = 0x00;
+    
+    TRISA = 0;
+    TRISB = 0;
+    TRISC = 0;
+    TRISD = 0;
+    TRISE = 0;
+    ANSEL = 0; // No analog
     
     serial_init();
 }
