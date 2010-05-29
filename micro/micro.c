@@ -23,23 +23,13 @@ void main() {
     byte MOTOR_L = 0, MOTOR_R = 0, MOTOR_V = 0;
     byte T = 0;
     
-    TRISA = 0;
-    TRISB = 0;
-    TRISC = 1 << 7; // RC7 to 1 for serial RX
-    TRISD = 0;
-    TRISE = 0;
-    
-    // No analog
-    ANSEL = 0;
-    
-    // Everything off
-    PORTA = 0x00;
-    PORTB = 0x00;
-    PORTC = 0x00;
-    PORTE = 0x00;
-    PORTD = 0x00;
-    
     init();
+    use_analog(7); // thermistor at RE2 (AN7)
+    
+    while (1) {
+        byte c = read_analog(7);
+        serial_tx(c);
+    }
     
     while (1) {
         byte cmd = serial_rx();

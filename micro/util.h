@@ -72,12 +72,20 @@ void use_analog(byte ans) {
         case 7 : TRISE2 = 1; break;
     }
     ADFM = 0;
-    VCFG = 0;
+    VCFG0 = 0;
+    VCFG1 = 0;
+    ADIE = 0;
     ADON = 1;
+    ADCS0 = 0;
+    ADCS1 = 1;
+    ANSEL = 1 << ans;
 }
 
 byte read_analog(byte ans) {
-    ANSEL = 1 << ans;
+    CHS0 = 1;
+    CHS1 = 1;
+    CHS2 = 1;
+    CHS3 = 0;
     GODONE = 1;
     while (GODONE) {}
     return ADRESH;

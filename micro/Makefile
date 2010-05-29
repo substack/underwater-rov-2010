@@ -8,6 +8,8 @@ OBJS=$(PROG).c
 
 all: $(PROG).hex
 
+$(PROG).c:util.h
+
 $(PROG).hex: $(OBJS)
 	$(PICL) $(OBJS) -O$@
 
@@ -21,3 +23,4 @@ install: $(PROG).hex
 
 serial: 
 	stty raw clocal 57600 cs8 -parenb parodd cstopb -echo < /dev/ttyUSB0 
+
