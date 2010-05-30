@@ -82,11 +82,9 @@ void use_analog(byte ans) {
 }
 
 byte read_analog(byte ans) {
-    CHS0 = 1;
-    CHS1 = 1;
-    CHS2 = 1;
-    CHS3 = 0;
-    GODONE = 1;
+    // page 106 from the spec sheet
+    //       ADON=1     GODONE=1   ADCS1=1    CH0,CH1,CH2,CH3
+    ADCON0 = (1 << 0) | (1 << 1) | (1 << 7) | (ans << 2);
     while (GODONE) {}
     return ADRESH;
 }
