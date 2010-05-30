@@ -9,14 +9,13 @@
 void main() {
     byte SERVO_0 = 0, SERVO_1 = 0;
     byte MOTOR_L = 0, MOTOR_R = 0, MOTOR_V = 0;
-    
     short BUCKET_L = 0, BUCKET_R = 0, BUCKET_V = 0;
     
     init();
     
     while (1) {
         byte cmd = serial_rx();
-        byte temp, power;
+        byte power;
         
         switch (cmd) {
             case CMD_SET_MOTORS :

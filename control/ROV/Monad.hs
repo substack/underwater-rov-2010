@@ -1,13 +1,17 @@
+{-# LANGUAGE TypeSynonymInstances #-}
 module ROV.Monad (
-    evalROV,execROV,runROV,setMotor,
+    evalROV,execROV,runROV,setMotor, getTemp,
     ($=),($~),($+),($-)
 ) where
 
 import ROV.Comm
+import Data.Word (Word8)
 
 import Control.Monad.State.Lazy (State(..),MonadState(..),modify)
 import Control.Applicative ((<$>))
 import qualified Data.Map as M
+
+import Control.Monad.Trans
 
 type ROV a = State Comm a
 
@@ -19,8 +23,9 @@ execROV = ((snd <$>) .) . runROV
 
 runROV :: Comm -> ROV a -> IO (a,Comm)
 runROV comm f = do
-    let r@(value,comm') = runState f comm
-    sendMotors comm'
+    t <- getRawTemp comm
+    let r@(value,comm') = runState f $ comm { commRawTemp = t }
+    sendMotors $ comm'
     return r
 
 ($=) :: Motor -> Float -> ROV ()
@@ -58,3 +63,6 @@ setMotor motor power = modify f where
         clamp = if motor `elem` [ML,MR,MV]
             then max (-1) . min 1
             else max 0 . min 1
+
+getTemp :: ROV Word8
+getTemp = commRawTemp <$> get

@@ -6,6 +6,7 @@ import System.Environment (getArgs)
 import qualified Data.Map as M
 import Control.Monad.State.Lazy
 import Control.Arrow ((&&&))
+import Control.Monad.Trans (liftIO)
 
 main :: IO ()
 main = mainArgs =<< getArgs
@@ -19,16 +20,19 @@ mainArgs argv = do
     runControl js comm handler
     
 handler :: InputState -> Comm -> IO Comm
-handler state comm = execROV comm $ do
+handler state comm = do
     let
         aTup = (M.!) (axes state)
         (lx,ly) = aTup LeftAxis
         (rx,ry) = aTup RightAxis
         (dx,dy) = aTup DPad
         button = (M.!) (buttons state)
-    
-    ML $= lx + ly
-    MR $= -lx + ly
-    MV $= ry
-    Pitch $+ dy / 8.0
-    Pinchers $+ dx / 2.0
+    (temp,comm') <- runROV comm $ do
+        ML $= lx + ly
+        MR $= -lx + ly
+        MV $= ry
+        Pitch $+ dy / 8.0
+        Pinchers $+ dx / 2.0
+        getTemp
+    print temp
+    return comm'
