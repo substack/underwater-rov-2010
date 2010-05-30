@@ -26,6 +26,7 @@ void main() {
     
     while (1) {
         byte cmd = serial_rx();
+        byte temp;
         
         switch (cmd) {
             case CMD_SET_MOTORS :
@@ -37,8 +38,8 @@ void main() {
                 serial_tx(CMD_OK);
                 break;
             case CMD_GET_TEMP :
-                byte temp = read_analog(7);
-                serial_tx(temp);
+                // read temperature data from RE2 (ANS7)
+                serial_tx(read_analog(7));
                 break;
         }
         
