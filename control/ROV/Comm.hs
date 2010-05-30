@@ -17,7 +17,7 @@ import Control.Monad (replicateM,when,join)
 import Control.Applicative ((<$>))
 import System.Random (randomRIO)
 
-import System.IO (hFlush,Handle)
+import System.IO (hFlush,Handle,stdout)
 
 data Comm = Comm {
     commH :: File.Handle,
@@ -54,5 +54,7 @@ sendMotors comm@Comm{ commH = fh, commMotors = motors } = do
         mapM_ (putWord8 . servoByte . (motors M.!)) [Pitch,Pinchers]
     hFlush fh
     res <- runGet getWord8 <$> hGet fh 1
-    when (res /= 0x80)
-        $ putStrLn "retry" >> sendMotors comm
+    when (res /= 0x80) $ do
+        putStrLn "retry"
+        hFlush stdout
+        sendMotors comm
