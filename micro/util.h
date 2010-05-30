@@ -60,7 +60,7 @@ void serial_init(void) {
     TRISC = 1 << 7; // RC7 to 1 for serial RX
 }
 
-void use_analog(byte ans) {
+byte read_analog(byte ans) {
     switch (ans) {
         case 0 : TRISA0 = 1; break;
         case 1 : TRISA1 = 1; break;
@@ -75,13 +75,8 @@ void use_analog(byte ans) {
     VCFG0 = 0;
     VCFG1 = 0;
     ADIE = 0;
-    ADON = 1;
-    ADCS0 = 0;
-    ADCS1 = 1;
     ANSEL = 1 << ans;
-}
-
-byte read_analog(byte ans) {
+    
     // page 106 from the spec sheet
     //       ADON=1     GODONE=1   ADCS1=1    CH0,CH1,CH2,CH3
     ADCON0 = (1 << 0) | (1 << 1) | (1 << 7) | (ans << 2);

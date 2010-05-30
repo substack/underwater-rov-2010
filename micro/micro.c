@@ -24,7 +24,6 @@ void main() {
     byte T = 0;
     
     init();
-    use_analog(7); // thermistor at RE2 (AN7)
     
     while (1) {
         byte c = read_analog(7);
