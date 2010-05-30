@@ -6,17 +6,6 @@
 #define CMD_OK 0x80
 #define CMD_GET_TEMP 0x81
 
-byte motor_bit(byte t, byte x) {
-    byte y = x % 128;
-    byte h = x < 128 ? 1 : 0;
-    if (x < 64) {
-        return ((t % (128 / y)) != 0 ? 1 : 0) << h;
-    }
-    else {
-        return (t % (128 / (127 - y)) == 0 ? 1 : 0) << h;
-    }
-}
-        
 void main() {
     byte SERVO_0 = 0, SERVO_1 = 0;
     byte MOTOR_L = 0, MOTOR_R = 0, MOTOR_V = 0;
