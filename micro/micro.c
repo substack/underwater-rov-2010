@@ -8,25 +8,26 @@
 
 byte motor_bit(byte t, byte x) {
     byte y = x % 128;
-    byte h = x < 128;
+    byte h = x < 128 ? 1 : 0;
     if (x < 64) {
-        return ((t % (128 / y)) != 0) << h;
+        return ((t % (128 / y)) != 0 ? 1 : 0) << h;
     }
     else {
-        return (t % (128 / (127 - y)) == 0) << h;
+        return (t % (128 / (127 - y)) == 0 ? 1 : 0) << h;
     }
 }
         
 void main() {
     byte SERVO_0 = 0, SERVO_1 = 0;
     byte MOTOR_L = 0, MOTOR_R = 0, MOTOR_V = 0;
-    byte T = 0;
+    
+    short BUCKET_L = 0, BUCKET_R = 0, BUCKET_V = 0;
     
     init();
     
     while (1) {
         byte cmd = serial_rx();
-        byte temp;
+        byte temp, power;
         
         switch (cmd) {
             case CMD_SET_MOTORS :
@@ -43,13 +44,40 @@ void main() {
                 break;
         }
         
-        PORTA
-            = (motor_bit(T,MOTOR_L) << 0)
-            | (motor_bit(T,MOTOR_R) << 2)
-            | (motor_bit(T,MOTOR_V) << 4)
-        ;
+        BUCKET_L += MOTOR_L - 127;
+        BUCKET_R += MOTOR_R - 127;
+        BUCKET_V += MOTOR_V - 127;
         
-        T ++;
+        power = 0;
+        
+        if (BUCKET_L >= 127) {
+            BUCKET_L -= 127;
+            power = power | (1 << 0);
+        }
+        else if (BUCKET_L < -127) {
+            BUCKET_L += 127;
+            power = power | (1 << 1);
+        }
+        
+        if (BUCKET_R >= 127) {
+            BUCKET_R -= 127;
+            power = power | (1 << 2);
+        }
+        else if (BUCKET_R < -127) {
+            BUCKET_R += 127;
+            power = power | (1 << 3);
+        }
+        
+        if (BUCKET_V >= 127) {
+            BUCKET_V -= 127;
+            power = power | (1 << 4);
+        }
+        else if (BUCKET_V < -127) {
+            BUCKET_V += 127;
+            power = power | (1 << 5);
+        }
+        
+        PORTA = power;
         
         PORTC = 0x1;
         wait_msecf(1,SERVO_0);
