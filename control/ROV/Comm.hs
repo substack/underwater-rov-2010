@@ -1,5 +1,5 @@
 module ROV.Comm (
-    Comm(..), Motor(..), newComm, send, isServo, isThruster
+    Comm(..), Motor(..), newComm, sendMotors
 ) where
 
 import Data.Bits ((.|.),bit)
@@ -17,7 +17,7 @@ import Control.Monad (replicateM,when,join)
 import Control.Applicative ((<$>))
 import System.Random (randomRIO)
 
-import System.IO (hFlush,stdout)
+import System.IO (hFlush,Handle)
 
 data Comm = Comm {
     commH :: File.Handle,
@@ -26,21 +26,6 @@ data Comm = Comm {
 
 data Motor = ML | MR | MV | Pinchers | Pitch
     deriving (Show,Eq,Ord)
-
-isServo Pinchers = True 
-isServo Pitch = True
-isServo _ = False
-
-isThruster = not . isServo
-
-
-data Constant = SetThrusters | SetServo Int
-    deriving (Show,Eq,Ord)
-
-constant :: Constant -> Word8
-constant SetThrusters = 0x40
-constant (SetServo 0) = 0x41
-constant (SetServo 1) = 0x42
 
 newComm :: FilePath -> IO Comm
 newComm dev = do
@@ -55,43 +40,19 @@ newComm dev = do
             [0.5,0.5,0,0,0]
     }
 
-send :: Comm -> IO Comm
-send comm = do
-    rs <- replicateM 3 $ randomRIO (0,1)
-    let motors = commMotors comm
-        cmds =
-            (SetThrusters, motorByte comm rs)
-            : (SetServo 0, round $ (*255) $ motors M.! Pitch)
-            : (SetServo 1, round $ (*255) $ motors M.! Pinchers)
-            : []
-    mapM (sendCmd comm) cmds
-    print cmds
-    hFlush stdout
-    return comm
+thrusterByte :: Float -> Word8
+thrusterByte x = floor $ 255 * (x + 1) / 2
 
-sendCmd :: Comm -> (Constant,Word8) -> IO ()
-sendCmd comm@Comm{ commH = fh } (c,byte) = do
+servoByte :: Float -> Word8
+servoByte = floor . (255 *)
+
+sendMotors :: Comm -> IO ()
+sendMotors comm@Comm{ commH = fh, commMotors = motors } = do
     hPut fh $ runPut $ do
-        putWord8 $ constant c
-        putWord8 byte
+        putWord8 0x40 -- CMD_SET_MOTORS
+        mapM_ (putWord8 . thrusterByte . (motors M.!)) [ML,MR,MV]
+        mapM_ (putWord8 . servoByte . (motors M.!)) [Pitch,Pinchers]
+    hFlush fh
     res <- runGet getWord8 <$> hGet fh 1
     when (res /= 0x80)
-        $ putStrLn "retry" >> sendCmd comm (c,byte)
-
-motorByte :: Comm -> [Float] -> Word8
-motorByte Comm{ commMotors = motors } rs = byte where
-    byte = foldl (.|.) 0
-        $ map (setBit . fst)
-        $ filter enoughPower
-        $ zip [ML,MR,MV] rs
-    enoughPower :: (Motor,Float) -> Bool
-    enoughPower (m,r) = (abs $ motors M.! m) > r
-    
-    setBit :: Motor -> Word8
-    setBit m = bit $ case (m,(motors M.! m) > 0) of
-        (ML,True) -> 2
-        (ML,False) -> 3
-        (MR,True) -> 0
-        (MR,False) -> 1
-        (MV,True) -> 5
-        (MV,False) -> 4
+        $ putStrLn "retry" >> sendMotors comm

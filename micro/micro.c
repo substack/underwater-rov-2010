@@ -3,9 +3,8 @@
 
 #define CMD_PRELUDE 0x50
 #define CMD_SET_MOTORS 0x40
-#define CMD_SET_SERVO_0 0x41
-#define CMD_SET_SERVO_1 0x42
 #define CMD_OK 0x80
+#define CMD_GET_TEMP 0x81
 
 byte motor_bit(byte t, byte x) {
     byte y = x % 128;
@@ -26,11 +25,6 @@ void main() {
     init();
     
     while (1) {
-        byte c = read_analog(7);
-        serial_tx(c);
-    }
-    
-    while (1) {
         byte cmd = serial_rx();
         
         switch (cmd) {
@@ -38,15 +32,13 @@ void main() {
                 MOTOR_L = serial_rx();
                 MOTOR_R = serial_rx();
                 MOTOR_V = serial_rx();
-                serial_tx(CMD_OK);
-                break;
-            case CMD_SET_SERVO_0 :
                 SERVO_0 = serial_rx();
-                serial_tx(CMD_OK);
-                break;
-            case CMD_SET_SERVO_1 :
                 SERVO_1 = serial_rx();
                 serial_tx(CMD_OK);
+                break;
+            case CMD_GET_TEMP :
+                byte temp = read_analog(7);
+                serial_tx(temp);
                 break;
         }
         
