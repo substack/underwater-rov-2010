@@ -27,8 +27,8 @@ handler state comm = execROV comm $ do
         (dx,dy) = aTup DPad
         button = (M.!) (buttons state)
     
-    ML @= lx + ly
-    MR @= -lx + ly
-    MV @= ry
-    Pitch @+ dy / 8.0
-    Pinchers @+ dx / 2.0
+    ML $= lx + ly
+    MR $= -lx + ly
+    MV $= ry
+    Pitch $+ dy / 8.0
+    Pinchers $+ dx / 2.0

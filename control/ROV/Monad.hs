@@ -1,6 +1,6 @@
 module ROV.Monad (
     evalROV,execROV,runROV,setMotor,
-    (@=),(@:),(@+),(@-)
+    ($=),($~),($+),($-)
 ) where
 
 import ROV.Comm
@@ -23,21 +23,21 @@ runROV comm f = do
     send comm'
     return r
 
-(@=) :: Motor -> Float -> ROV ()
-(@=) = setMotor
-infixr 1 @=
+($=) :: Motor -> Float -> ROV ()
+($=) = setMotor
+infixr 1 $=
 
-(@:) :: Motor -> (Float -> Float) -> ROV ()
-(@:) = modifyMotor
-infixr 1 @:
+($~) :: Motor -> (Float -> Float) -> ROV ()
+($~) = modifyMotor
+infixr 1 $~
 
-(@+) :: Motor -> Float -> ROV ()
-motor @+ v = motor @: (+v)
-infixr 1 @+
+($+) :: Motor -> Float -> ROV ()
+motor $+ v = motor $~ (+v)
+infixr 1 $+
 
-(@-) :: Motor -> Float -> ROV ()
-motor @- v = motor @: subtract v
-infixr 1 @-
+($-) :: Motor -> Float -> ROV ()
+motor $- v = motor $~ subtract v
+infixr 1 $-
 
 getMotor :: Motor -> ROV Float
 getMotor motor = f <$> get where
