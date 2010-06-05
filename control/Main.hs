@@ -27,12 +27,12 @@ handler state comm = do
         (rx,ry) = aTup RightAxis
         (dx,dy) = aTup DPad
         button = (M.!) (buttons state)
-    (temp,comm') <- runROV comm $ do
+    (comm',t) <- execROV comm $ do
         ML $= lx + ly
         MR $= -lx + ly
         MV $= ry
         Pitch $+ dy / 8.0
         Pinchers $+ dx / 2.0
         getTemp
-    print temp
+    print t
     return comm'

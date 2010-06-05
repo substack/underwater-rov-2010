@@ -1,6 +1,7 @@
 module Main where
 import Sound.Alsa
 import DSP.Estimation.Frequency.Pisarenko (pisarenko)
+import Numeric.Transform.Fourier.FFT (ifft)
 
 import Foreign (Ptr, Storable, mallocArray, peekArray)
 import Control.Monad (forever)
@@ -34,6 +35,7 @@ micThread sampleRate samples = do
         let -- phase angle is in radians
             volume = (sum $ map abs rawSound) / fromIntegral n
             phaseAngle = pisarenko (listArray (0,n-1) rawSound)
+            --phaseAngle = ifft (listArray (0,n-1) rawSound)
             hz = phaseAngle / (2 * pi) * fromIntegral sampleRate
         putMVar mv $ if isNaN hz then (0,0) else (hz,volume)
     return mv

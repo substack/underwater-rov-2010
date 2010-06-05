@@ -1,10 +1,7 @@
 #include <pic.h>
 #include "util.h"
 
-#define CMD_PRELUDE 0x50
 #define CMD_SET_MOTORS 0x40
-#define CMD_OK 0x80
-#define CMD_GET_TEMP 0x81
 
 #define set_servo(n,power) \
     PORTC = n; \
@@ -38,9 +35,6 @@ void main() {
                 SERVO_0 = s0;
                 SERVO_1 = s1;
                 
-                serial_tx(CMD_OK);
-                break;
-            case CMD_GET_TEMP :
                 // read temperature data from RE2 (ANS7)
                 serial_tx(read_analog(7));
                 break;
