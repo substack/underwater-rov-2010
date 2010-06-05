@@ -12,7 +12,8 @@ import Control.Monad (mapM,forever)
 import Control.Applicative ((<$>))
 
 import Data.Maybe (isNothing,isJust,fromJust)
-import Control.Concurrent (forkIO,MVar,newMVar,swapMVar,readMVar)
+import Control.Concurrent (forkIO,threadDelay)
+import Control.Concurrent.MVar (MVar,newMVar,swapMVar,readMVar)
 import Data.List.Split (splitEvery)
 
 import qualified Data.Map as M
@@ -96,7 +97,8 @@ joystickThread js = do
                     [ (x,y) | [x,y] <- splitEvery 2 axisData ],
                 buttons = M.fromList $ zip buttonList buttonData
             }
-        return ()
+        -- sleep for 0.01 seconds
+        threadDelay $ floor $ 0.01 * 10^6
     return var
 
 runControl :: SDL.Joystick -> a -> (InputState -> a -> IO a) -> IO ()
