@@ -50,7 +50,6 @@ commThread :: Comm -> IO ()
 commThread Comm{ commH = fh, commTempVar = tempVar } = do
     forkIO $ forever $ do
         temp <- runGet getWord8 <$> hGet fh 1
-        putStrLn $ "temp=" ++ show temp
         swapMVar tempVar temp
         yield
     return ()
