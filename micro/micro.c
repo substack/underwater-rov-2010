@@ -6,24 +6,38 @@
 #define CMD_OK 0x80
 #define CMD_GET_TEMP 0x81
 
+#define set_servo(n,power) \
+    PORTC = n; \
+    wait_msecf(1,power); \
+    PORTC = 0;
+
 void main() {
     byte SERVO_0 = 0, SERVO_1 = 0;
     byte MOTOR_L = 0, MOTOR_R = 0, MOTOR_V = 0;
     short BUCKET_L = 0, BUCKET_R = 0, BUCKET_V = 0;
+    byte T = 0;
     
     init();
     
     while (1) {
         byte cmd = serial_rx();
-        byte power;
+        byte power, s0, s1;
         
         switch (cmd) {
             case CMD_SET_MOTORS :
                 MOTOR_L = serial_rx();
                 MOTOR_R = serial_rx();
                 MOTOR_V = serial_rx();
-                SERVO_0 = serial_rx();
-                SERVO_1 = serial_rx();
+                
+                s0 = serial_rx();
+                s1 = serial_rx();
+                
+                if (s0 != SERVO_0) set_servo(1 << 0, SERVO_0);
+                if (s1 != SERVO_1) set_servo(1 << 1, SERVO_1);
+                
+                SERVO_0 = s0;
+                SERVO_1 = s1;
+                
                 serial_tx(CMD_OK);
                 break;
             case CMD_GET_TEMP :
@@ -66,11 +80,6 @@ void main() {
         }
         
         PORTA = power;
-        
-        PORTC = 0x1;
-        wait_msecf(1,SERVO_0);
-        PORTC = 0x2;
-        wait_msecf(1,SERVO_1);
-        PORTC = 0;
+        wait_msec(4);
     }
 }
