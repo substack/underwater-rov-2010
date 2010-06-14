@@ -10,12 +10,12 @@ import Foreign (Ptr, Storable, mallocArray, peekArray)
 import Control.Monad (forever)
 import Data.Complex (Complex(..),magnitude)
 
-import Control.Concurrent (forkIO)
+import Control.Concurrent (forkIO,yield)
 import Control.Concurrent.MVar
 
 type Frequency = Double
-type Volume = Double
-type Freqs = [(Frequency,Volume)]
+type Amplitude = Double
+type Freqs = [(Frequency,Amplitude)]
 
 listen :: Int -> Int -> IO (MVar Freqs)
 listen sampleRate samples = do
@@ -31,14 +31,13 @@ listen sampleRate samples = do
         rawSound <- peekArray n buf
         
         let
-            volume = (sum $ map abs rawSound) / fromIntegral n
-            rawFreqs = map magnitude $ Ax.elems $ fft
+            amplitudes = map magnitude $ Ax.elems $ fft
                 $ Ax.listArray (0,n-1) $ map (:+ 0) rawSound
             sampleStep = (fromIntegral sampleRate / fromIntegral samples)
-            freqs = takeWhile ((< 5000) . fst)
+            freqAssoc = takeWhile ((< 5000) . fst)
                 $ dropWhile ((< 1000) . fst)
-                $ zip (iterate (+ sampleStep) 0) rawFreqs
+                $ zip (iterate (+ sampleStep) 0) amplitudes
         
-        putMVar mv freqs
-        return ()
+        putMVar mv freqAssoc
+        yield
     return mv

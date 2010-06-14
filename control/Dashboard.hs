@@ -5,7 +5,10 @@ import Graphics.Rendering.OGL (GL,GLfloat,($=),($~))
 import qualified Graphics.UI.OGL.GLFW as FW
 
 import qualified Control.Monad as M
+import Control.Arrow
 import Control.Concurrent.MVar
+import Data.List (maximumBy,minimumBy)
+import Data.Ord (comparing)
 
 import qualified Mic
 
@@ -13,7 +16,7 @@ rgbaBits = [ FW.DisplayRGBBits 8 8 8, FW.DisplayAlphaBits 8 ]
 depthBits = [ FW.DisplayDepthBits 8 ]
 
 main = do
-    micV <- Mic.listen 44100 10000
+    micV <- Mic.listen 44100 4000
     
     FW.initialize
     FW.openWindow (GL.Size 1024 300) (rgbaBits ++ depthBits) FW.Window
@@ -25,8 +28,8 @@ main = do
             FW.Release -> onKeyUp key
     M.forever $ do
         FW.pollEvents
-        freqs <- readMVar micV
-        GL.runGL (display freqs)
+        freqAssoc <- readMVar micV
+        GL.runGL (display freqAssoc)
         FW.sleep 0.001
 
 onKeyDown (FW.SpecialKey FW.ESC) = GL.liftIO $ do
@@ -37,13 +40,13 @@ onKeyDown _ = return ()
 onKeyUp _ = return ()
 
 display :: Mic.Freqs -> GL ()
-display freqs = do
+display freqAssoc = do
     GL.clearColor $= GL.Color4 0.7 0.4 0.8 0
     GL.clear [ GL.ColorBuffer, GL.DepthBuffer ]
     
     GL.loadIdentity
     
-    drawPanel (Px 0,Px 0) (Percent 50, Percent 100) (audioGraph freqs)
+    drawPanel (Px 0,Px 0) (Percent 50, Percent 100) (audioGraph freqAssoc)
     
     GL.flush
     FW.swapBuffers
@@ -75,8 +78,20 @@ drawPanel pt size panel = GL.preservingMatrix $ do
 type Panel = GL ()
 
 audioGraph :: Mic.Freqs -> Panel
-audioGraph freqs = do
+audioGraph freqAssoc = do
     GL.color (GL.Color3 0.3 0.3 0.3 :: GL.Color3 GLfloat)
     GL.renderPrimitive GL.Quads $ do
         M.forM_ ([(0,0),(0,1),(1,1),(1,0)] :: [(GLfloat,GLfloat)])
             $ \(x,y) -> GL.vertex $ GL.Vertex2 x y
+    GL.color (GL.Color3 1 0 0 :: GL.Color3 GLfloat)
+    GL.renderPrimitive GL.Lines $ do
+        let
+            (freqs,amps) = unzip freqAssoc
+            (maxF,minF) = maximum &&& minimum $ freqs
+            (maxA,minA) = maximum &&& minimum $ amps
+        M.forM_ freqAssoc $ \(freq,amp) -> do
+            let x = f $ (freq - minF) / maxF
+                y = f $ (amp - minA) / maxA
+                f :: Double -> GLfloat
+                f = fromRational . toRational
+            GL.vertex $ GL.Vertex2 x y
