@@ -12,16 +12,22 @@ depthBits = [ FW.DisplayDepthBits 8 ]
 main = do
     FW.initialize
     FW.openWindow (GL.Size 1024 300) (rgbaBits ++ depthBits) FW.Window
+    GL.runGL $ do
+        FW.swapInterval $= 0
+        (FW.windowSizeCallback $=) $ \size -> GL.runGL $ do
+            GL.viewport $= (GL.Position 0 0, size)
     forever $ do
         FW.pollEvents
         GL.runGL display
 
 display :: GL ()
 display = do
-    GL.clear [ GL.ColorBuffer, GL.DepthBuffer ]
     GL.clearColor $= GL.Color4 0.7 0.4 0.8 0
+    GL.clear [ GL.ColorBuffer, GL.DepthBuffer ]
     
-    drawPanel (Px 0,Percent 25) (Percent 100, Percent 50) audioGraph
+    GL.loadIdentity
+    
+    drawPanel (Px 0,Px 0) (Percent 50, Percent 100) audioGraph
     
     GL.flush
     FW.swapBuffers
