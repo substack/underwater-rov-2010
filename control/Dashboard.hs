@@ -4,30 +4,35 @@ import qualified Graphics.Rendering.OGL as GL
 import Graphics.Rendering.OGL (GL,GLfloat,($=),($~))
 import qualified Graphics.UI.OGL.GLFW as FW
 
-import Control.Monad (forever,forM_,mapM_,when,unless)
+import qualified Control.Monad as M
+import Control.Concurrent.MVar
+
+import qualified Mic
 
 rgbaBits = [ FW.DisplayRGBBits 8 8 8, FW.DisplayAlphaBits 8 ]
 depthBits = [ FW.DisplayDepthBits 8 ]
 
 main = do
+    micV <- Mic.listen 44100 10000
+    
     FW.initialize
     FW.openWindow (GL.Size 1024 300) (rgbaBits ++ depthBits) FW.Window
     GL.runGL $ do
-        FW.swapInterval $= 0
         (FW.windowSizeCallback $=) $ \size -> GL.runGL $ do
             GL.viewport $= (GL.Position 0 0, size)
-    forever $ do
+    M.forever $ do
         FW.pollEvents
-        GL.runGL display
+        freqs <- readMVar micV
+        GL.runGL (display freqs)
 
-display :: GL ()
-display = do
+display :: Mic.Freqs -> GL ()
+display freqs = do
     GL.clearColor $= GL.Color4 0.7 0.4 0.8 0
     GL.clear [ GL.ColorBuffer, GL.DepthBuffer ]
     
     GL.loadIdentity
     
-    drawPanel (Px 0,Px 0) (Percent 50, Percent 100) audioGraph
+    drawPanel (Px 0,Px 0) (Percent 50, Percent 100) (audioGraph freqs)
     
     GL.flush
     FW.swapBuffers
@@ -58,9 +63,9 @@ drawPanel pt size panel = GL.preservingMatrix $ do
 
 type Panel = GL ()
 
-audioGraph :: Panel
-audioGraph = do
+audioGraph :: Mic.Freqs -> Panel
+audioGraph freqs = do
     GL.color (GL.Color3 1 0 0 :: GL.Color3 GLfloat)
     GL.renderPrimitive GL.Quads $ do
-        forM_ ([(0,0),(0,1),(1,1),(1,0)] :: [(GLfloat,GLfloat)])
+        M.forM_ ([(0,0),(0,1),(1,1),(1,0)] :: [(GLfloat,GLfloat)])
             $ \(x,y) -> GL.vertex $ GL.Vertex2 x y
