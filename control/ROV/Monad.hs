@@ -28,6 +28,7 @@ runROV comm f = do
     t <- readMVar $ commTempVar comm
     let r@(value,(comm',t')) = runState f (comm,t)
     sendMotors comm'
+    print comm'
     return r
 
 ($=) :: Motor -> Float -> ROV ()

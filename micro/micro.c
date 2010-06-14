@@ -29,8 +29,8 @@ void main() {
                 s0 = serial_rx();
                 s1 = serial_rx();
                 
-                if (s0 != SERVO_0) set_servo(1 << 0, SERVO_0);
-                if (s1 != SERVO_1) set_servo(1 << 1, SERVO_1);
+                set_servo(1 << 0, SERVO_0);
+                set_servo(1 << 1, SERVO_1);
                 
                 SERVO_0 = s0;
                 SERVO_1 = s1;

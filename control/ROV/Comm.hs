@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 module ROV.Comm (
     Comm(..), Motor(..), newComm, sendMotors
 ) where
@@ -21,7 +22,10 @@ data Comm = Comm {
     commH :: File.Handle,
     commTempVar :: MVar Word8,
     commMotors :: M.Map Motor Float
-}
+} deriving Show
+
+instance Show (MVar Word8) where
+    show _ = "<MVar Word8>"
 
 data Motor = ML | MR | MV | Pinchers | Pitch
     deriving (Show,Eq,Ord)
