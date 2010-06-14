@@ -1,4 +1,6 @@
-module Main where
+module Mic (
+    Freqs(..), listen
+) where
 
 import Sound.Alsa
 import Numeric.Transform.Fourier.FFT (fft)
@@ -8,31 +10,22 @@ import Foreign (Ptr, Storable, mallocArray, peekArray)
 import Control.Monad (forever)
 import Data.Complex (Complex(..),magnitude)
 
-import Control.Concurrent (forkIO, threadDelay)
+import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar
 
-import Data.List (sortBy)
-import Data.Function (on)
+type Frequency = Double
+type Volume = Double
+type Freqs = [(Frequency,Volume)]
 
-type MicState = (Double,Double) -- frequency, volume
-
-main :: IO ()
-main = do
-    micV <- micThread 44100 10000
-    forever $ do
-        (rawVol, freq) <- readMVar micV
-        print (rawVol,freq)
-        threadDelay $ 5 * 10 ^ 5
-
-micThread :: Int -> Int -> IO (MVar MicState)
-micThread sampleRate samples = do
+listen :: Int -> Int -> IO (MVar Freqs)
+listen sampleRate samples = do
     let
         source = alsaSoundSource "plughw:0,0" soundFormat
         soundFormat = SoundFmt sampleRate :: SoundFmt Double
     buf <- mallocArray samples
     
-    mv <- newMVar (0,0)
-    forkIO $ withSoundSource source $ \handle -> forever $ do
+    mv <- newMVar []
+    thId <- forkIO $ withSoundSource source $ \handle -> forever $ do
         takeMVar mv
         n <- soundSourceRead source handle buf samples
         rawSound <- peekArray n buf
@@ -46,9 +39,6 @@ micThread sampleRate samples = do
                 $ dropWhile ((< 1000) . fst)
                 $ zip (iterate (+ sampleStep) 0) rawFreqs
         
-        print $ take 20 $ reverse $ sortBy (compare `on` snd) freqs
-        
-        putMVar mv (0,0)
-        -- putMVar mv $ if isNaN hz then (0,0) else (hz,volume)
+        putMVar mv freqs
         return ()
     return mv

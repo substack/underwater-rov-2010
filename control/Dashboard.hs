@@ -20,10 +20,21 @@ main = do
     GL.runGL $ do
         (FW.windowSizeCallback $=) $ \size -> GL.runGL $ do
             GL.viewport $= (GL.Position 0 0, size)
+        (FW.keyCallback $=) $ \key state -> case state of
+            FW.Press -> onKeyDown key
+            FW.Release -> onKeyUp key
     M.forever $ do
         FW.pollEvents
         freqs <- readMVar micV
         GL.runGL (display freqs)
+        FW.sleep 0.001
+
+onKeyDown (FW.SpecialKey FW.ESC) = GL.liftIO $ do
+    FW.closeWindow
+    FW.terminate
+onKeyDown _ = return ()
+
+onKeyUp _ = return ()
 
 display :: Mic.Freqs -> GL ()
 display freqs = do
@@ -65,7 +76,7 @@ type Panel = GL ()
 
 audioGraph :: Mic.Freqs -> Panel
 audioGraph freqs = do
-    GL.color (GL.Color3 1 0 0 :: GL.Color3 GLfloat)
+    GL.color (GL.Color3 0.3 0.3 0.3 :: GL.Color3 GLfloat)
     GL.renderPrimitive GL.Quads $ do
         M.forM_ ([(0,0),(0,1),(1,1),(1,0)] :: [(GLfloat,GLfloat)])
             $ \(x,y) -> GL.vertex $ GL.Vertex2 x y
