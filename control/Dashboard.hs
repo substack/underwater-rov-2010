@@ -31,9 +31,21 @@ data Coord
     | Px GLfloat
 type Coords = (Coord,Coord)
 
--- translate (-1,1) coords 
+-- turn Coords into window coords in (-1,1)
+resolve :: Coords -> GL (GLfloat,GLfloat)
+resolve (x,y) = do
+    GL.Size width height <- GL.get FW.windowSize
+    return (f width x,f (-height) y) where
+        f _ (Percent c) = (c / 100) * 2 - 1
+        f d (Px c) = (c / fromIntegral d) * 2 - 1
+
+-- draw a panel starting at a point with a size
 drawPanel :: Coords -> Coords -> Panel -> GL ()
-drawPanel pt1 pt2 panel = return ()
+drawPanel pt size panel = GL.preservingMatrix $ do
+    (x,y) <- resolve pt
+    (w,h) <- resolve size
+    GL.translate $ GL.Vector3 x (y+1) 0
+    panel
 
 type Panel = GL ()
 
