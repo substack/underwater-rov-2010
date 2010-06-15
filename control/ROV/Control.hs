@@ -12,7 +12,7 @@ import Control.Monad (mapM,forever)
 import Control.Applicative ((<$>))
 
 import Data.Maybe (isNothing,isJust,fromJust)
-import Control.Concurrent (forkIO,yield,threadDelay)
+import Control.Concurrent (forkOS,yield,threadDelay)
 import Control.Concurrent.MVar (MVar,newMVar,swapMVar,readMVar)
 import Data.List.Split (splitEvery)
 
@@ -84,7 +84,7 @@ joystickThread js = do
             axes = M.fromList . zip [LeftAxis,RightAxis,DPad] $ repeat (0,0),
             buttons = M.fromList $ zip buttonList (repeat False)
         }
-    forkIO $ forever $ do
+    forkOS $ forever $ do
         JS.update
         let mb = fromIntegral (maxBound :: Int16) :: Float
         axisData <- mapM (((/mb) . fromIntegral <$>) . JS.getAxis js)

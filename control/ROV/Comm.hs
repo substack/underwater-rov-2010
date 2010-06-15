@@ -15,7 +15,7 @@ import Data.ByteString.Lazy (hPut,hGet)
 
 import Control.Monad (replicateM,when,join,forever)
 import Control.Applicative ((<$>))
-import Control.Concurrent (forkIO,yield)
+import Control.Concurrent (forkOS,yield)
 import Control.Concurrent.MVar (MVar,newMVar,swapMVar,readMVar)
 
 data Comm = Comm {
@@ -45,14 +45,12 @@ newComm dev = do
             [Pinchers,Pitch,ML,MR,MV]
             [0.5,0.5,0,0,0]
     }
-    putStrLn "start comm thread"
     commThread comm
-    putStrLn "return"
     return comm
 
 commThread :: Comm -> IO ()
 commThread Comm{ commH = fh, commTempVar = tempVar } = do
-    forkIO $ forever $ do
+    forkOS $ forever $ do
         temp <- runGet getWord8 <$> hGet fh 1
         swapMVar tempVar temp
         yield

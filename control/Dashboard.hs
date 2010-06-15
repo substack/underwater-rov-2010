@@ -13,21 +13,26 @@ import System.Environment (getArgs)
 import qualified Mic
 import qualified ROV
 
-rgbaBits = [ FW.DisplayRGBBits 8 8 8, FW.DisplayAlphaBits 8 ]
-depthBits = [ FW.DisplayDepthBits 8 ]
-
 main :: IO ()
 main = do
     argv <- getArgs
     
-    micVar <- Mic.listen "plughw:0,0" 44100 1000
+    micVar <- Mic.listen "plughw:0,0" (11025 * 2) 4000
     tempVar <- ROV.drive "/dev/ttyUSB0"
     
     FW.initialize
-    FW.openWindow (GL.Size 1024 300) (rgbaBits ++ depthBits) FW.Window
+    FW.openWindow (GL.Size 1024 300) [ FW.DisplayAlphaBits 8 ] FW.Window
     GL.runGL $ do
-        (FW.windowSizeCallback $=) $ \size -> GL.runGL $ do
+        GL.shadeModel $= GL.Smooth
+        GL.lineSmooth $= GL.Enabled
+        GL.blend $= GL.Enabled
+        GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha)
+        GL.lineWidth $= 2
+        (FW.windowSizeCallback $=) $ \size@(GL.Size w h) -> GL.runGL $ do
             GL.viewport $= (GL.Position 0 0, size)
+            GL.matrixMode $= GL.Projection
+            GL.loadIdentity
+            GL.ortho2D 0 (realToFrac w) (realToFrac h) 0
         (FW.keyCallback $=) $ \key state -> case state of
             FW.Press -> onKeyDown key
             FW.Release -> onKeyUp key
@@ -93,7 +98,15 @@ type Panel = GL ()
 
 temperatureLabel :: ROV.Temperature -> Panel
 temperatureLabel t = do
-    return ()
+    GL.color (GL.Color3 0 0 0 :: GL.Color3 GLfloat)
+    GL.renderPrimitive GL.Quads $ do
+        M.forM_ ([(0,0),(0,1),(1,1),(1,0)] :: [(GLfloat,GLfloat)])
+            $ \(x,y) -> GL.vertex $ GL.Vertex2 x y
+    
+    GL.preservingMatrix $ do
+        GL.color (GL.Color4 1 1 1 1 :: GL.Color4 GLfloat)
+        let s = 0.03 :: GLfloat in GL.scale s s s
+        FW.renderString FW.Fixed8x16 $ show t
 
 micCoords :: Mic.FreqAssoc -> [(GLfloat,GLfloat)]
 micCoords freqAssoc = map f freqAssoc where
@@ -103,8 +116,8 @@ micCoords freqAssoc = map f freqAssoc where
         r :: Double -> GLfloat
         r = fromRational . toRational
     (freqs,amps) = unzip freqAssoc
-    (maxF,minF) = (5000,1000)
-    (maxA,minA) = (1,0)
+    (maxF,minF) = (maximum freqs, minimum freqs) -- (5000,1000)
+    (maxA,minA) = (5,0)
 
 audioGraph :: Mic.FreqAssoc -> Panel
 audioGraph freqAssoc = do

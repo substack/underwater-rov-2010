@@ -9,6 +9,7 @@ import ROV.Monad
 import qualified Data.Map as M
 import Data.Word (Word8)
 
+import Control.Concurrent (forkOS)
 import Control.Concurrent.MVar
 
 type Device = String
@@ -19,7 +20,7 @@ drive dev = do
     tempV <- newMVar 0
     js <- getJoystick
     comm <- newComm dev
-    runControl js comm (handler tempV)
+    forkOS $ runControl js comm (handler tempV)
     return tempV
  
 handler :: MVar Temperature -> InputState -> Comm -> IO Comm
@@ -31,8 +32,8 @@ handler tempV state comm = do
         (dx,dy) = aTup DPad
         button = (M.!) (buttons state)
     (comm',t) <- execROV comm $ do
-        ML $= -lx + ly
-        MR $= lx + ly
+        ML $= lx + ly
+        MR $= -lx + ly
         MV $= -ry
         Pitch $+ dy / 64.0
         Pinchers $+ dx / 10.0
