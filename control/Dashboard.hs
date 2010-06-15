@@ -5,10 +5,8 @@ import Graphics.Rendering.OGL (GL,GLfloat,($=),($~))
 import qualified Graphics.UI.OGL.GLFW as FW
 
 import qualified Control.Monad as M
-import Control.Arrow
 import Control.Concurrent.MVar
 import Control.Concurrent (yield)
-import Data.List (maximumBy,minimumBy)
 
 import System.Environment (getArgs)
 
