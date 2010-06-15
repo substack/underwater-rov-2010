@@ -18,11 +18,9 @@ import Data.List.Split (splitEvery)
 
 import qualified Data.Map as M
 
-type Argv = [String]
-
--- | Select a joystick based on argv or prompted input
-getJoystick :: Argv -> IO SDL.Joystick
-getJoystick argv = do
+-- | Select a capable joystick, possibly prompting for a choice
+getJoystick :: IO SDL.Joystick
+getJoystick = do
     SDL.init [SDL.InitJoystick]
     
     ix <- enumFromTo 0 <$> JS.countAvailable
