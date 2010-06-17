@@ -1,5 +1,5 @@
 module Mic (
-    FreqAssoc(..), listen
+    Assoc(..), Pair, Frequency, Amplitude, listen
 ) where
 
 import Sound.Alsa
@@ -15,10 +15,11 @@ import Control.Concurrent.MVar
 
 type Frequency = Double
 type Amplitude = Double
-type FreqAssoc = [(Frequency,Amplitude)]
+type Pair = (Frequency,Amplitude)
+type Assoc = [Pair]
 type Device = String
 
-listen :: Device -> Int -> Int -> IO (MVar FreqAssoc)
+listen :: Device -> Int -> Int -> IO (MVar Assoc)
 listen dev sampleRate samples = do
     let
         source = alsaSoundSource dev soundFormat
@@ -33,8 +34,8 @@ listen dev sampleRate samples = do
         let
             amps = map magnitude $ Ax.elems $ fft
                 $ Ax.listArray (0,n-1) $ map (:+ 0) rawSound
-            sampleStep = (fromIntegral sampleRate / fromIntegral n)
-            freqs = iterate (+ sampleStep) 0
+            sampleStep = fromIntegral sampleRate / fromIntegral n
+            freqs = [ 0, sampleStep .. fromIntegral sampleRate / 2 ]
             freqAssoc = zip freqs amps
         
         swapMVar mv freqAssoc

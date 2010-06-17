@@ -39,9 +39,9 @@ main = do
             FW.Release -> onKeyUp key
     M.forever $ do
         FW.pollEvents
-        freqAssoc <- readMVar micVar
+        assoc <- readMVar micVar
         temperature <- readMVar tempVar
-        GL.runGL (display freqAssoc temperature)
+        GL.runGL (display assoc temperature)
         yield
 
 onKeyDown (FW.SpecialKey FW.ESC) = GL.liftIO $ do
@@ -51,8 +51,8 @@ onKeyDown _ = return ()
 
 onKeyUp _ = return ()
 
-display :: Mic.FreqAssoc -> ROV.Temperature -> GL ()
-display freqAssoc temperature = do
+display :: Mic.Assoc -> ROV.Temperature -> GL ()
+display assoc temperature = do
     GL.clearColor $= GL.Color4 0.7 0.4 0.8 0
     GL.clear [ GL.ColorBuffer, GL.DepthBuffer ]
     
@@ -61,7 +61,7 @@ display freqAssoc temperature = do
     drawPanel
         (Px 0,Px 0)
         (Percent 50, Percent 100)
-        (audioGraph freqAssoc)
+        (audioGraph assoc)
     
     drawPanel
         (Percent 50,Px 0)
@@ -105,7 +105,7 @@ temperatureLabel t = do
             $ \(x,y) -> GL.vertex $ GL.Vertex2 x y
     
     GL.color (GL.Color4 1 1 1 1 :: GL.Color4 GLfloat)
-    renderText $ show t
+    renderText $ show t ++ "° C"
 
 renderText :: String -> GL ()
 renderText text = GL.preservingMatrix $ do
@@ -114,27 +114,37 @@ renderText text = GL.preservingMatrix $ do
     GL.scale 0.005 0.04 (0 :: GLfloat)
     FW.renderString FW.Fixed8x16 text
 
-micCoords :: Mic.FreqAssoc -> [(GLfloat,GLfloat)]
-micCoords freqAssoc = map f freqAssoc where
-    f (freq,amp) = (x,y) where
+data MicRange = MicRange Mic.Pair Mic.Pair
+
+micRange :: Mic.Assoc -> MicRange
+micRange assoc = MicRange fp ap
+    where
+        (freqs,amps) = unzip assoc
+        fp = (maximum freqs, minimum freqs)
+        ap = (2,0)
+
+micCoord :: MicRange -> Mic.Pair -> (GLfloat,GLfloat)
+micCoord (MicRange (maxF,minF) (maxA,minA)) (freq,amp) = (x,y)
+    where
         x = r $ (freq - minF) / (maxF - minF)
         y = r $ (maxA - amp) / (maxA - minA)
         r :: Double -> GLfloat
         r = fromRational . toRational
-    (freqs,amps) = unzip freqAssoc
-    (maxF,minF) = (maximum freqs, minimum freqs)
-    (maxA,minA) = (5,0)
 
-audioGraph :: Mic.FreqAssoc -> Panel
-audioGraph freqAssoc = do
+audioGraph :: Mic.Assoc -> Panel
+audioGraph assoc = do
     GL.color (GL.Color3 0.3 0.3 0.3 :: GL.Color3 GLfloat)
     GL.renderPrimitive GL.Quads $ do
         M.forM_ ([(0,0),(0,1),(1,1),(1,0)] :: [(GLfloat,GLfloat)])
             $ \(x,y) -> GL.vertex $ GL.Vertex2 x y
     
-    let coords = micCoords freqAssoc
+    let
+        range = micRange assoc
+        coords = map (micCoord range) assoc
+        lines = zip coords (tail coords)
+    
     GL.color (GL.Color3 1 0 0 :: GL.Color3 GLfloat)
-    GL.renderPrimitive GL.Lines
-        $ M.forM_ (zip coords $ tail coords) $ \((x0,y0),(x1,y1)) -> do
+    GL.renderPrimitive GL.Lines $ do
+        M.forM_ lines $ \((x0,y0),(x1,y1)) -> do
             GL.vertex $ GL.Vertex2 x0 y0
             GL.vertex $ GL.Vertex2 x1 y1
