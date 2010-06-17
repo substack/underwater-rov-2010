@@ -142,6 +142,12 @@ audioGraph assoc = do
         range = micRange assoc
         coords = map (micCoord range) assoc
         lines = zip coords (tail coords)
+        aoi = map (micCoord range) [ (1000,0), (1000,2), (5000,2), (5000,0) ]
+    
+    M.when (not $ null assoc) $ do
+        GL.color (GL.Color3 0.6 0.3 0.3 :: GL.Color3 GLfloat)
+        GL.renderPrimitive GL.Quads $ do
+            M.forM_ aoi $ \(x,y) -> GL.vertex $ GL.Vertex2 x y
     
     GL.color (GL.Color3 1 0 0 :: GL.Color3 GLfloat)
     GL.renderPrimitive GL.Lines $ do
