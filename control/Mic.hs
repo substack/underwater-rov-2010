@@ -36,8 +36,6 @@ listen dev sampleRate samples = do
             sampleStep = (fromIntegral sampleRate / fromIntegral n)
             freqs = iterate (+ sampleStep) 0
             freqAssoc = zip freqs amps
-            --freqAssoc = zip [0..] rawSound
         
         swapMVar mv freqAssoc
-        yield
     return mv

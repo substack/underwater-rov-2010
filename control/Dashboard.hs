@@ -1,4 +1,4 @@
-module Dashboard where
+module Main where
 
 import qualified Graphics.Rendering.OGL as GL
 import Graphics.Rendering.OGL (GL,GLfloat,($=),($~))
@@ -18,7 +18,8 @@ main = do
     argv <- getArgs
     
     micVar <- Mic.listen "plughw:0,0" (11025 * 2) 4000
-    tempVar <- ROV.drive "/dev/ttyUSB0"
+    --tempVar <- ROV.drive "/dev/ttyUSB0"
+    tempVar <- newMVar 42
     
     FW.initialize
     FW.openWindow (GL.Size 1024 300) [ FW.DisplayAlphaBits 8 ] FW.Window
@@ -63,8 +64,8 @@ display freqAssoc temperature = do
         (audioGraph freqAssoc)
     
     drawPanel
-        (Percent 60,Px 0)
-        (Percent 40, Px 30)
+        (Percent 50,Px 0)
+        (Percent 50, Px 20)
         (temperatureLabel temperature)
     
     GL.flush
@@ -103,10 +104,15 @@ temperatureLabel t = do
         M.forM_ ([(0,0),(0,1),(1,1),(1,0)] :: [(GLfloat,GLfloat)])
             $ \(x,y) -> GL.vertex $ GL.Vertex2 x y
     
-    GL.preservingMatrix $ do
-        GL.color (GL.Color4 1 1 1 1 :: GL.Color4 GLfloat)
-        let s = 0.03 :: GLfloat in GL.scale s s s
-        FW.renderString FW.Fixed8x16 $ show t
+    GL.color (GL.Color4 1 1 1 1 :: GL.Color4 GLfloat)
+    renderText $ show t
+
+renderText :: String -> GL ()
+renderText text = GL.preservingMatrix $ do
+    GL.rotate 180 (GL.Vector3 1 0 0 :: GL.Vector3 GLfloat)
+    GL.translate (GL.Vector3 0 (-1) 0 :: GL.Vector3 GLfloat)
+    GL.scale 0.005 0.04 (0 :: GLfloat)
+    FW.renderString FW.Fixed8x16 text
 
 micCoords :: Mic.FreqAssoc -> [(GLfloat,GLfloat)]
 micCoords freqAssoc = map f freqAssoc where
@@ -116,7 +122,7 @@ micCoords freqAssoc = map f freqAssoc where
         r :: Double -> GLfloat
         r = fromRational . toRational
     (freqs,amps) = unzip freqAssoc
-    (maxF,minF) = (maximum freqs, minimum freqs) -- (5000,1000)
+    (maxF,minF) = (maximum freqs, minimum freqs)
     (maxA,minA) = (5,0)
 
 audioGraph :: Mic.FreqAssoc -> Panel
