@@ -5,9 +5,12 @@ import Graphics.Rendering.OGL (GL,GLfloat,($=),($~))
 import qualified Graphics.UI.OGL.GLFW as FW
 
 import qualified Control.Monad as M
+import Control.Monad.Trans (liftIO)
+import Data.List (maximumBy)
+import Data.Ord (comparing)
+
 import Control.Concurrent.MVar
 import Control.Concurrent (yield)
-
 import System.Environment (getArgs)
 
 import qualified Mic
@@ -18,8 +21,7 @@ main = do
     argv <- getArgs
     
     micVar <- Mic.listen "plughw:0,0" (11025 * 2) 4000
-    --tempVar <- ROV.drive "/dev/ttyUSB0"
-    tempVar <- newMVar 42
+    tempVar <- ROV.drive "/dev/ttyUSB0"
     
     FW.initialize
     FW.openWindow (GL.Size 1024 300) [ FW.DisplayAlphaBits 8 ] FW.Window
@@ -37,12 +39,25 @@ main = do
         (FW.keyCallback $=) $ \key state -> case state of
             FW.Press -> onKeyDown key
             FW.Release -> onKeyUp key
+    
+    tempsVar <- newMVar []
+    runningTempVar <- newMVar 0
+    
     M.forever $ do
         FW.pollEvents
         assoc <- readMVar micVar
         temperature <- readMVar tempVar
-        GL.runGL (display assoc temperature)
-        yield
+        
+        modifyMVar_ tempsVar (\t -> return $ temperature : t)
+        temps <- readMVar tempsVar
+        M.when (length temps >= 50) $ do
+            swapMVar tempsVar []
+            let avg = sum temps / (fromIntegral $ length temps)
+            swapMVar runningTempVar avg
+            liftIO $ print $ show $ round avg
+        
+        runningTemp <- readMVar runningTempVar
+        GL.runGL (display assoc runningTemp)
 
 onKeyDown (FW.SpecialKey FW.ESC) = GL.liftIO $ do
     FW.closeWindow
@@ -105,13 +120,15 @@ temperatureLabel t = do
             $ \(x,y) -> GL.vertex $ GL.Vertex2 x y
     
     GL.color (GL.Color4 1 1 1 1 :: GL.Color4 GLfloat)
-    renderText $ show t ++ "° C"
+    renderText 0.01 $ show (round t) ++ "° C"
 
-renderText :: String -> GL ()
-renderText text = GL.preservingMatrix $ do
+renderText :: GLfloat -> String -> GL ()
+renderText s text = GL.preservingMatrix $ do
     GL.rotate 180 (GL.Vector3 1 0 0 :: GL.Vector3 GLfloat)
     GL.translate (GL.Vector3 0 (-1) 0 :: GL.Vector3 GLfloat)
-    GL.scale 0.005 0.04 (0 :: GLfloat)
+    GL.Size width height <- GL.get FW.windowSize
+    let as = fromIntegral width / fromIntegral height
+    GL.scale s (s * as * 4) 0
     FW.renderString FW.Fixed8x16 text
 
 data MicRange = MicRange Mic.Pair Mic.Pair
@@ -143,6 +160,8 @@ audioGraph assoc = do
         coords = map (micCoord range) assoc
         lines = zip coords (tail coords)
         aoi = map (micCoord range) [ (1000,0), (1000,2), (5000,2), (5000,0) ]
+        best = maximumBy (comparing snd)
+            [ (f,a) | (f,a) <- assoc, f >= 1000, f <= 5000 ]
     
     M.when (not $ null assoc) $ do
         GL.color (GL.Color3 0.6 0.3 0.3 :: GL.Color3 GLfloat)
@@ -154,3 +173,8 @@ audioGraph assoc = do
         M.forM_ lines $ \((x0,y0),(x1,y1)) -> do
             GL.vertex $ GL.Vertex2 x0 y0
             GL.vertex $ GL.Vertex2 x1 y1
+    
+    M.when (not $ null assoc) $ GL.preservingMatrix $ do
+        GL.color (GL.Color3 1 1 1 :: GL.Color3 GLfloat)
+        GL.translate (GL.Vector3 0 (-0.5) 0 :: GL.Vector3 GLfloat)
+        renderText 0.003 $ show $ round $ fst best
