@@ -5,6 +5,7 @@ module ROV (
 import ROV.Control
 import ROV.Comm
 import ROV.Monad
+import Control.Monad (when)
 
 import qualified Data.Map as M
 import Data.Word (Word8)
@@ -34,9 +35,11 @@ handler tempV state comm = do
     (comm',t) <- execROV comm $ do
         ML $= lx + ly
         MR $= -lx + ly
-        MV $= -ry
-        Pitch $+ dy / 64.0
-        Pinchers $+ dx / 10.0
+        MV $= ry
+        when (button Button5) $ Pitch $+ 0.02
+        when (button Button4) $ Pitch $- 0.02
+        when (button ButtonL) $ Pinchers $+ 0.1
+        when (button ButtonR) $ Pinchers $- 0.1
         getTemp
     swapMVar tempV $ interpolate t
     return comm'

@@ -50,11 +50,11 @@ main = do
         
         modifyMVar_ tempsVar (\t -> return $ temperature : t)
         temps <- readMVar tempsVar
-        M.when (length temps >= 50) $ do
+        M.when (length temps >= 10) $ do
             swapMVar tempsVar []
             let avg = sum temps / (fromIntegral $ length temps)
             swapMVar runningTempVar avg
-            liftIO $ print $ show $ round avg
+            return ()
         
         runningTemp <- readMVar runningTempVar
         GL.runGL (display assoc runningTemp)
