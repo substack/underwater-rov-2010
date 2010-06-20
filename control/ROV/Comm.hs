@@ -9,13 +9,14 @@ import qualified Data.Map as M
 import qualified System.IO as File
 import System.Process (system)
 
+import Foreign (Ptr(..),malloc,peek)
+
 import Data.Binary.Put (runPut,putWord8)
-import Data.Binary.Get (runGet,getWord8)
-import Data.ByteString.Lazy (hPut,hGet)
+import qualified Data.ByteString.Lazy as BS
 
 import Control.Monad (replicateM,when,join,forever)
 import Control.Applicative ((<$>))
-import Control.Concurrent (forkOS,yield)
+import Control.Concurrent (forkOS,threadDelay)
 import Control.Concurrent.MVar (MVar,newMVar,swapMVar,readMVar)
 
 data Comm = Comm {
@@ -36,6 +37,7 @@ newComm dev = do
     system $ "sudo chmod g+rw /dev/bus/usb -R"
     system $ "stty raw clocal 57600 cs8 -parenb parodd cstopb -echo < " ++ dev
     fh <- File.openFile dev File.ReadWriteMode
+    File.hSetBuffering fh File.NoBuffering
     
     tempVar <- newMVar 0
     let comm = Comm {
@@ -50,10 +52,12 @@ newComm dev = do
 
 commThread :: Comm -> IO ()
 commThread Comm{ commH = fh, commTempVar = tempVar } = do
+    ptr <- malloc :: IO (Ptr Word8)
     forkOS $ forever $ do
-        temp <- runGet getWord8 <$> hGet fh 1
-        swapMVar tempVar temp
-        yield
+        n <- File.hGetBufNonBlocking fh ptr 1
+        if n == 1
+            then (swapMVar tempVar =<< peek ptr) >> return ()
+            else threadDelay $ round $ 10^6 * 0.01
     return ()
 
 thrusterByte :: Float -> Word8
@@ -64,7 +68,7 @@ servoByte = floor . (255 *)
 
 sendMotors :: Comm -> IO ()
 sendMotors comm@Comm{ commH = fh, commMotors = motors } = do
-    hPut fh $ runPut $ do
+    BS.hPut fh $ runPut $ do
         putWord8 0x40 -- CMD_SET_MOTORS
         mapM_ (putWord8 . thrusterByte . (motors M.!)) [ML,MR,MV]
         mapM_ (putWord8 . servoByte . (motors M.!)) [Pitch,Pinchers]

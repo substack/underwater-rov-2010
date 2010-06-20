@@ -107,7 +107,7 @@ runControl js x f = do
         x' <- readMVar xVar
         x'' <- f state x'
         swapMVar xVar x''
-        threadDelay $ floor $ 0.01 * 10^6
+        threadDelay $ floor (10 ^ 6 * 0.01)
 
 iterateM_ :: (Functor m, Monad m) => (a -> m a) -> a -> m ()
 iterateM_ f x = iterateM_ f =<< f x

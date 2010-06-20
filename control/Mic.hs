@@ -10,7 +10,7 @@ import Foreign (Ptr, Storable, mallocArray, peekArray)
 import Control.Monad (forever)
 import Data.Complex (Complex(..),magnitude)
 
-import Control.Concurrent (forkOS,yield)
+import Control.Concurrent (forkOS,threadDelay)
 import Control.Concurrent.MVar
 
 type Frequency = Double
@@ -39,4 +39,5 @@ listen dev sampleRate samples = do
             freqAssoc = zip freqs amps
         
         swapMVar mv freqAssoc
+        threadDelay $ round $ 10^6 * 0.1
     return mv

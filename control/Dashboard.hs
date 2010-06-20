@@ -58,6 +58,7 @@ main = do
         
         runningTemp <- readMVar runningTempVar
         GL.runGL (display assoc runningTemp)
+        FW.sleep 0.01
 
 onKeyDown (FW.SpecialKey FW.ESC) = GL.liftIO $ do
     FW.closeWindow
@@ -128,7 +129,7 @@ renderText s text = GL.preservingMatrix $ do
     GL.translate (GL.Vector3 0 (-1) 0 :: GL.Vector3 GLfloat)
     GL.Size width height <- GL.get FW.windowSize
     let as = fromIntegral width / fromIntegral height
-    GL.scale s (s * as * 4) 0
+    GL.scale (s / as) (s * 4) 0
     FW.renderString FW.Fixed8x16 text
 
 data MicRange = MicRange Mic.Pair Mic.Pair
