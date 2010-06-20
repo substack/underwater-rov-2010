@@ -5,6 +5,8 @@ module ROV (
 import ROV.Control
 import ROV.Comm
 import ROV.Monad
+import Interpolate (Calibration,readCalibration,interpolate)
+
 import Control.Monad (when)
 
 import qualified Data.Map as M
@@ -19,13 +21,14 @@ type Temperature = Double
 drive :: Device -> IO (MVar Temperature)
 drive dev = do
     tempV <- newMVar 0
+    cal <- readCalibration
     js <- getJoystick
     comm <- newComm dev
-    forkOS $ runControl js comm (handler tempV)
+    forkOS $ runControl js comm (handler cal tempV)
     return tempV
  
-handler :: MVar Temperature -> InputState -> Comm -> IO Comm
-handler tempV state comm = do
+handler :: Calibration -> MVar Temperature -> InputState -> Comm -> IO Comm
+handler cal tempV state comm = do
     let
         aTup = (M.!) (axes state)
         (lx,ly) = aTup LeftAxis
@@ -41,8 +44,5 @@ handler tempV state comm = do
         when (button ButtonL) $ Pinchers $+ 0.1
         when (button ButtonR) $ Pinchers $- 0.1
         getTemp
-    swapMVar tempV $ interpolate t
+    swapMVar tempV $ interpolate cal t
     return comm'
-
-interpolate :: Word8 -> Temperature
-interpolate = fromIntegral -- for now

@@ -1,3 +1,4 @@
+# calibrated temp, raw temp
 80 37
 75 46
 70 52
