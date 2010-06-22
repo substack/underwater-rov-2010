@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 module ROV.Monad (
-    evalROV,execROV,runROV,setMotor, getTemp,
+    evalROV,execROV,runROV,setMotor,
     ($=),($~),($+),($-)
 ) where
 
@@ -14,57 +14,52 @@ import qualified Data.Map as M
 import Control.Monad.Trans
 import Control.Concurrent.MVar (readMVar)
 
-type ROV a = State CommState a
-type CommState = (Comm,Word8)
+type RovM a = State Comm a
 
-evalROV :: Comm -> ROV a -> IO a
+evalROV :: Comm -> RovM a -> IO a
 evalROV = ((fst <$>) .) . runROV
 
-execROV :: Comm -> ROV a -> IO CommState
+execROV :: Comm -> RovM a -> IO Comm
 execROV = ((snd <$>) .) . runROV
 
-runROV :: Comm -> ROV a -> IO (a,CommState)
+runROV :: Comm -> RovM a -> IO (a,Comm)
 runROV comm f = do
-    t <- readMVar $ commTempVar comm
-    let r@(value,(comm',t')) = runState f (comm,t)
+    let r@(_,comm') = runState f comm
     sendMotors comm'
     return r
 
-($=) :: Motor -> Float -> ROV ()
+($=) :: Motor -> Float -> RovM ()
 ($=) = setMotor
 infixr 1 $=
 
-($~) :: Motor -> (Float -> Float) -> ROV ()
+($~) :: Motor -> (Float -> Float) -> RovM ()
 ($~) = modifyMotor
 infixr 1 $~
 
-($+) :: Motor -> Float -> ROV ()
+($+) :: Motor -> Float -> RovM ()
 motor $+ v = motor $~ (+v)
 infixr 1 $+
 
-($-) :: Motor -> Float -> ROV ()
+($-) :: Motor -> Float -> RovM ()
 motor $- v = motor $~ subtract v
 infixr 1 $-
 
-getMotor :: Motor -> ROV Float
+getMotor :: Motor -> RovM Float
 getMotor motor = f <$> get where
-    f (comm,_) = commMotors comm M.! motor
+    f comm = commMotors comm M.! motor
 
-modifyMotor :: Motor -> (Float -> Float) -> ROV ()
+modifyMotor :: Motor -> (Float -> Float) -> RovM ()
 modifyMotor motor f = modify g where
-    g (comm,t) = (comm { commMotors = motors },t) where
+    g comm = comm { commMotors = motors } where
         motors = M.adjust (clamp . f) motor (commMotors comm)
         clamp = if motor `elem` [ML,MR,MV]
             then max (-1) . min 1
             else max 0 . min 1
 
-setMotor :: Motor -> Float -> ROV ()
+setMotor :: Motor -> Float -> RovM ()
 setMotor motor power = modify f where
-    f (comm,t) = (comm { commMotors = motors },t) where
+    f comm = comm { commMotors = motors } where
         motors = M.insert motor (clamp power) (commMotors comm)
         clamp = if motor `elem` [ML,MR,MV]
             then max (-1) . min 1
             else max 0 . min 1
-
-getTemp :: ROV Word8
-getTemp = snd <$> get

@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 module ROV.Comm (
-    Comm(..), Motor(..), newComm, sendMotors
+    Comm(..), Motor(..), newComm, sendMotors, readTemp
 ) where
 
 import Data.Word (Word8)
@@ -16,12 +16,10 @@ import qualified Data.ByteString.Lazy as BS
 
 import Control.Monad (replicateM,when,join,forever)
 import Control.Applicative ((<$>))
-import Control.Concurrent (forkOS,threadDelay)
 import Control.Concurrent.MVar (MVar,newMVar,swapMVar,readMVar)
 
 data Comm = Comm {
     commH :: File.Handle,
-    commTempVar :: MVar Word8,
     commMotors :: M.Map Motor Float
 } deriving Show
 
@@ -33,32 +31,24 @@ data Motor = ML | MR | MV | Pinchers | Pitch
 
 newComm :: FilePath -> IO Comm
 newComm dev = do
-    system $ "sudo chgrp plugdev /dev/bus/usb -R"
-    system $ "sudo chmod g+rw /dev/bus/usb -R"
-    system $ "stty raw clocal 57600 cs8 -parenb parodd cstopb -echo < " ++ dev
     fh <- File.openFile dev File.ReadWriteMode
     File.hSetBuffering fh File.NoBuffering
     
     tempVar <- newMVar 0
-    let comm = Comm {
+    return $ Comm {
         commH = fh,
-        commTempVar = tempVar,
         commMotors = M.fromList $ zip
             [Pinchers,Pitch,ML,MR,MV]
             [0.5,0.5,0,0,0]
     }
-    commThread comm
-    return comm
 
-commThread :: Comm -> IO ()
-commThread Comm{ commH = fh, commTempVar = tempVar } = do
+readTemp :: Comm -> IO (Maybe Word8)
+readTemp comm@Comm{ commH = fh } = do
     ptr <- malloc :: IO (Ptr Word8)
-    forkOS $ forever $ do
-        n <- File.hGetBufNonBlocking fh ptr 1
-        if n == 1
-            then (swapMVar tempVar =<< peek ptr) >> return ()
-            else threadDelay $ round $ 10^6 * 0.01
-    return ()
+    n <- File.hGetBufNonBlocking fh ptr 1
+    if n == 1
+        then Just <$> peek ptr
+        else return Nothing
 
 thrusterByte :: Float -> Word8
 thrusterByte x = floor $ 255 * (x + 1) / 2

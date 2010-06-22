@@ -1,6 +1,6 @@
 module ROV.Control (
     InputState(..), AxisState, Axis(..), Button(..),
-    getJoystick, runControl, angle, magnitude,
+    getJoystick, readInput, angle, magnitude,
 ) where
 
 import qualified Graphics.UI.SDL as SDL
@@ -12,8 +12,6 @@ import Control.Monad (mapM,forever)
 import Control.Applicative ((<$>))
 
 import Data.Maybe (isNothing,isJust,fromJust)
-import Control.Concurrent (forkOS,yield,threadDelay)
-import Control.Concurrent.MVar (MVar,newMVar,swapMVar,readMVar)
 import Data.List.Split (splitEvery)
 
 import qualified Data.Map as M
@@ -78,36 +76,15 @@ data InputState = InputState {
     buttons :: M.Map Button Bool
 } deriving (Show,Ord,Eq)
 
-joystickThread :: SDL.Joystick -> IO (MVar InputState)
-joystickThread js = do
-    var <- newMVar $ InputState {
-            axes = M.fromList . zip [LeftAxis,RightAxis,DPad] $ repeat (0,0),
-            buttons = M.fromList $ zip buttonList (repeat False)
+readInput :: SDL.Joystick -> IO InputState
+readInput js = do
+    JS.update
+    let mb = fromIntegral (maxBound :: Int16) :: Float
+    axisData <- mapM (((/mb) . fromIntegral <$>) . JS.getAxis js)
+        [0,1,3,2,4,5]
+    buttonData <- mapM (JS.getButton js) [0..11]
+    return $ InputState {
+            axes = M.fromList $ zip axisList
+                [ (x,y) | [x,y] <- splitEvery 2 axisData ],
+            buttons = M.fromList $ zip buttonList buttonData
         }
-    forkOS $ forever $ do
-        JS.update
-        let mb = fromIntegral (maxBound :: Int16) :: Float
-        axisData <- mapM (((/mb) . fromIntegral <$>) . JS.getAxis js)
-            [0,1,3,2,4,5]
-        buttonData <- mapM (JS.getButton js) [0..11]
-        swapMVar var $ InputState {
-                axes = M.fromList $ zip axisList
-                    [ (x,y) | [x,y] <- splitEvery 2 axisData ],
-                buttons = M.fromList $ zip buttonList buttonData
-            }
-        yield
-    return var
-
-runControl :: SDL.Joystick -> a -> (InputState -> a -> IO a) -> IO ()
-runControl js x f = do
-    var <- joystickThread js
-    xVar <- newMVar x
-    forever $ do
-        state <- readMVar var
-        x' <- readMVar xVar
-        x'' <- f state x'
-        swapMVar xVar x''
-        threadDelay $ floor (10 ^ 6 * 0.01)
-
-iterateM_ :: (Functor m, Monad m) => (a -> m a) -> a -> m ()
-iterateM_ f x = iterateM_ f =<< f x
