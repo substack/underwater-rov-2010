@@ -24,9 +24,7 @@ runEvents :: Int -> [Event] -> IO ()
 runEvents threadPoolSize evs = do
     t0 <- fromRational . toRational <$> T.getPOSIXTime
     eVar <- newMVar $ M.fromList $ zip [0..] evs
-    replicateM_ (threadPoolSize - 1) (forkOS $ eventThread eVar t0)
-    -- also use the main thread:
-    eventThread eVar t0
+    replicateM_ (threadPoolSize) (forkOS $ eventThread eVar t0)
 
 eventThread :: MVar Events -> Double -> IO ()
 eventThread eVar t0 = do

@@ -10,6 +10,7 @@ import Data.List (maximumBy)
 import Data.Ord (comparing)
 
 import Control.Concurrent.MVar
+import Control.Concurrent (yield)
 import Control.Applicative ((<$>),(<*>))
 
 import ROV.Input (getJoystick,readInput)
@@ -24,7 +25,7 @@ main :: IO ()
 main = do
     js <- getJoystick
     comm <- Comm.newComm "/dev/ttyUSB0"
-    cal <- readCalibration "data/"
+    cal <- readCalibration "data/therm.txt"
     
     FW.initialize
     
@@ -45,24 +46,30 @@ main = do
             FW.Release -> onKeyUp key
     
     tempVar <- newMVar 0
+    micVar <- newMVar []
     
-    runEvents
+    runEvents 1
         . setInterval 0.1 (do 
             mTemp <- (Just (interpolate cal) <*>) <$> Comm.readTemp comm
             case mTemp of
                 Just t -> swapMVar tempVar t >> return ()
                 Nothing -> return ()
         )
-        . setInterval 0.01 (do
-            temp <- readMVar tempVar
-            micAssoc <- Mic.listen "plughw:0,0" (11025 * 2) 4000
-            FW.pollEvents
-            GL.runGL (display micAssoc temp)
+        . setInterval 0.1 (do
+            micAssoc <- Mic.listen "plughw:0,0" (11025 * 2) 8192
+            swapMVar micVar micAssoc
         )
         . setInterval 0.05 (do
             drive comm =<< readInput js
         )
         $ []
+    
+    M.forever $ do
+        temp <- readMVar tempVar
+        micAssoc <- readMVar micVar
+        FW.pollEvents
+        GL.runGL (display micAssoc temp)
+        yield
 
 onKeyDown (FW.SpecialKey FW.ESC) = GL.liftIO $ do
     FW.closeWindow
