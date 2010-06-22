@@ -1,14 +1,14 @@
 module ROV.Drive (drive) where
 
-import ROV.Input (InputState)
-import ROV.Comm (Comm)
-import ROV.Mic (listen)
+import ROV.Monad
+import ROV.Comm
+import ROV.Input
 
 import Control.Monad (when)
 import qualified Data.Map as M
 
-drive :: InputState -> Comm -> IO Comm
-drive input comm
+drive :: Comm -> InputState -> IO Comm
+drive comm input
     = execROV comm $ do
         ML $= lx + ly
         MR $= -lx + ly

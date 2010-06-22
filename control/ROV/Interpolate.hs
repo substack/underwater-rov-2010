@@ -1,6 +1,6 @@
 -- interpolate temperature data
 module ROV.Interpolate (
-    Calibration, readCalibration, interpolate
+    Calibration, Temp, readCalibration, interpolate
 ) where
 
 import Control.Applicative ((<$>))
@@ -21,14 +21,14 @@ type Calibration = (V.Vector Temp, V.Vector Temp)
 
 both = join (***)
 
-readCalibration :: IO Calibration
-readCalibration
+readCalibration :: FilePath -> IO Calibration
+readCalibration path
     = both V.fromList
     . unzip
     . map (f . map read . words)
     . filter ((/= '#') . head)
     . lines
-    <$> readFile "data/therm.txt"
+    <$> readFile path
     where f [x,y] = (y,x)
 
 interpolate :: Calibration -> RawTemp -> Temp

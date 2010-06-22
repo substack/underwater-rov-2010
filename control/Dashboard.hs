@@ -10,20 +10,24 @@ import Data.List (maximumBy)
 import Data.Ord (comparing)
 
 import Control.Concurrent.MVar
-import Control.Concurrent (yield)
-import System.Environment (getArgs)
+import Control.Applicative ((<$>),(<*>))
 
-import qualified Mic
-import qualified ROV
+import ROV.Input (getJoystick,readInput)
+import ROV.Drive (drive)
+import ROV.Interpolate (interpolate,readCalibration,Temp)
+import qualified ROV.Mic as Mic
+import qualified ROV.Comm as Comm
+
+import Event (setTimeout,setInterval,runEvents)
 
 main :: IO ()
 main = do
-    argv <- getArgs
-    
-    micVar <- Mic.listen "plughw:0,0" (11025 * 2) 4000
-    tempVar <- ROV.drive "/dev/ttyUSB0"
+    js <- getJoystick
+    comm <- Comm.newComm "/dev/ttyUSB0"
+    cal <- readCalibration "data/"
     
     FW.initialize
+    
     FW.openWindow (GL.Size 1024 300) [ FW.DisplayAlphaBits 8 ] FW.Window
     GL.runGL $ do
         GL.shadeModel $= GL.Smooth
@@ -40,25 +44,25 @@ main = do
             FW.Press -> onKeyDown key
             FW.Release -> onKeyUp key
     
-    tempsVar <- newMVar []
-    runningTempVar <- newMVar 0
+    tempVar <- newMVar 0
     
-    M.forever $ do
-        FW.pollEvents
-        assoc <- readMVar micVar
-        temperature <- readMVar tempVar
-        
-        modifyMVar_ tempsVar (\t -> return $ temperature : t)
-        temps <- readMVar tempsVar
-        M.when (length temps >= 10) $ do
-            swapMVar tempsVar []
-            let avg = sum temps / (fromIntegral $ length temps)
-            swapMVar runningTempVar avg
-            return ()
-        
-        runningTemp <- readMVar runningTempVar
-        GL.runGL (display assoc runningTemp)
-        FW.sleep 0.01
+    runEvents
+        . setInterval 0.1 (do 
+            mTemp <- (Just (interpolate cal) <*>) <$> Comm.readTemp comm
+            case mTemp of
+                Just t -> swapMVar tempVar t >> return ()
+                Nothing -> return ()
+        )
+        . setInterval 0.01 (do
+            temp <- readMVar tempVar
+            micAssoc <- Mic.listen "plughw:0,0" (11025 * 2) 4000
+            FW.pollEvents
+            GL.runGL (display micAssoc temp)
+        )
+        . setInterval 0.05 (do
+            drive comm =<< readInput js
+        )
+        $ []
 
 onKeyDown (FW.SpecialKey FW.ESC) = GL.liftIO $ do
     FW.closeWindow
@@ -67,7 +71,7 @@ onKeyDown _ = return ()
 
 onKeyUp _ = return ()
 
-display :: Mic.Assoc -> ROV.Temperature -> GL ()
+display :: Mic.Assoc -> Temp -> GL ()
 display assoc temperature = do
     GL.clearColor $= GL.Color4 0.7 0.4 0.8 0
     GL.clear [ GL.ColorBuffer, GL.DepthBuffer ]
@@ -113,7 +117,7 @@ drawPanel pt size panel = GL.preservingMatrix $ do
 
 type Panel = GL ()
 
-temperatureLabel :: ROV.Temperature -> Panel
+temperatureLabel :: Temp -> Panel
 temperatureLabel t = do
     GL.color (GL.Color3 0 0 0 :: GL.Color3 GLfloat)
     GL.renderPrimitive GL.Quads $ do
