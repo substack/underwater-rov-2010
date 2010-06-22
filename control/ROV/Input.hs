@@ -1,4 +1,4 @@
-module ROV.Control (
+module ROV.Input (
     InputState(..), AxisState, Axis(..), Button(..),
     getJoystick, readInput, angle, magnitude,
 ) where

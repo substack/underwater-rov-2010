@@ -1,4 +1,4 @@
-module Mic (
+module ROV.Mic (
     Assoc(..), Pair, Frequency, Amplitude, listen
 ) where
 

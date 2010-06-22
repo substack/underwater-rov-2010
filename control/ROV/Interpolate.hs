@@ -1,5 +1,5 @@
 -- interpolate temperature data
-module Interpolate (
+module ROV.Interpolate (
     Calibration, readCalibration, interpolate
 ) where
 
