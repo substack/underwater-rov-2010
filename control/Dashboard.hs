@@ -3,17 +3,21 @@ module Main where
 import qualified Graphics.Rendering.OGL as GL
 import Graphics.Rendering.OGL (GL,GLfloat,($=),($~))
 import qualified Graphics.UI.OGL.GLFW as FW
+import qualified Graphics.Rendering.Chart.Simple as Chart
 
 import Control.Monad
 import Control.Monad.Trans (liftIO)
 import Data.List (maximumBy)
 import Data.Ord (comparing)
 import qualified Data.Map as M
+import Data.Maybe (fromJust)
+
+import qualified Data.Time.Clock.POSIX as T
+import qualified System.Posix.Files (createSymbolicLink,removeLink)
 
 import Control.Concurrent.MVar
-import Control.Concurrent (yield)
+import Control.Concurrent (forkOS,yield)
 import Control.Applicative ((<$>),(<*>),(<|>))
-import Data.Maybe (fromJust)
 
 import ROV.Input (getJoystick,readInput)
 import ROV.Drive (drive)
@@ -26,6 +30,9 @@ import Event (setTimeout,setInterval,runEvents)
 data TempSample = Base | Mid | Top
     deriving (Ord,Eq,Show)
 type SampleMap = M.Map TempSample Temp
+
+sampleHeights :: M.Map TempSample Double
+sampleHeights = M.fromList [(Base,40),(Mid,70),(Top,100)]
 
 main :: IO ()
 main = do
@@ -42,9 +49,15 @@ main = do
     
     let markSample :: TempSample -> IO ()
         markSample sample = do
-            t <- readMVar tempVar
-            putStrLn $ "Mark at " ++ show sample ++ ": " ++ show t ++ "° C"
-            modifyMVar_ tempSampleVar (return . M.insert sample t)
+            temp <- readMVar tempVar
+            putStrLn $ "Mark at " ++ show sample ++ ": " ++ show temp ++ "° C"
+            modifyMVar_ tempSampleVar (return . M.insert sample temp)
+            forkOS $ do
+                samples <- unzip . M.toList . M.mapKeys (sampleHeights M.!)
+                    <$> readMVar tempSampleVar
+                time <- T.getPOSIXTime
+                join $ uncurry (Chart.plotPNG "data/temperature.png") samples
+            return ()
     
     FW.openWindow (GL.Size 1024 300) [ FW.DisplayAlphaBits 8 ] FW.Window
     GL.runGL $ do
@@ -72,6 +85,11 @@ main = do
                     putStrLn $ "Marked frequency "
                         ++ show freq ++ ": " ++ show micAssoc
                     swapMVar freqMarkVar freq
+                    return ()
+                FW.CharKey 'G' -> GL.liftIO $ do
+                    samples <- unzip . M.toList . M.mapKeys (sampleHeights M.!)
+                        <$> readMVar tempSampleVar
+                    forkOS $ join $ uncurry (Chart.plotWindow) samples
                     return ()
                 _ -> return ()
             FW.Release -> return ()
