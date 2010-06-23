@@ -24,7 +24,7 @@ import Event (setTimeout,setInterval,runEvents)
 main :: IO ()
 main = do
     js <- getJoystick
-    comm <- Comm.newComm "/dev/ttyUSB0"
+    commVar <- newMVar =<< Comm.newComm "/dev/ttyUSB0"
     cal <- readCalibration "data/therm.txt"
     
     FW.initialize
@@ -48,19 +48,21 @@ main = do
     tempVar <- newMVar 0
     micVar <- newMVar []
     
-    runEvents 1
-        . setInterval 0.1 (do 
+    runEvents 3
+        . setInterval 0 (do 
+            comm <- readMVar commVar
             mTemp <- (Just (interpolate cal) <*>) <$> Comm.readTemp comm
             case mTemp of
                 Just t -> swapMVar tempVar t >> return ()
                 Nothing -> return ()
         )
-        . setInterval 0.1 (do
+        . setInterval 1.0 (do
             micAssoc <- Mic.listen "plughw:0,0" (11025 * 2) 8192
             swapMVar micVar micAssoc
         )
         . setInterval 0.05 (do
-            drive comm =<< readInput js
+            input <- readInput js
+            modifyMVar_ commVar (flip drive $ input)
         )
         $ []
     

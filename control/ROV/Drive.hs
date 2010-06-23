@@ -13,10 +13,10 @@ drive comm input
         ML $= lx + ly
         MR $= -lx + ly
         MV $= ry
-        when (button Button5) $ Pitch $+ 0.02
-        when (button Button4) $ Pitch $- 0.02
-        when (button ButtonL) $ Pinchers $+ 0.1
-        when (button ButtonR) $ Pinchers $- 0.1
+        when (button Button5) $ Pitch $+ 0.25
+        when (button Button4) $ Pitch $- 0.25
+        when (button ButtonL) $ Pinchers $+ 0.25
+        when (button ButtonR) $ Pinchers $- 0.25
     where 
         aTup = (M.!) (axes input)
         (lx,ly) = aTup LeftAxis

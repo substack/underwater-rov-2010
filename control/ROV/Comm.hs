@@ -58,6 +58,7 @@ servoByte = floor . (255 *)
 
 sendMotors :: Comm -> IO ()
 sendMotors comm@Comm{ commH = fh, commMotors = motors } = do
+    print motors
     BS.hPut fh $ runPut $ do
         putWord8 0x40 -- CMD_SET_MOTORS
         mapM_ (putWord8 . thrusterByte . (motors M.!)) [ML,MR,MV]
