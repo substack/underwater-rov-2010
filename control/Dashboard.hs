@@ -12,7 +12,8 @@ import qualified Data.Map as M
 
 import Control.Concurrent.MVar
 import Control.Concurrent (yield)
-import Control.Applicative ((<$>),(<*>))
+import Control.Applicative ((<$>),(<*>),(<|>))
+import Data.Maybe (fromJust)
 
 import ROV.Input (getJoystick,readInput)
 import ROV.Drive (drive)
@@ -24,6 +25,7 @@ import Event (setTimeout,setInterval,runEvents)
 
 data TempSample = Base | Mid | Top
     deriving (Ord,Eq,Show)
+type SampleMap = M.Map TempSample Temp
 
 main :: IO ()
 main = do
@@ -86,13 +88,14 @@ main = do
     
     forever $ do
         temp <- readMVar tempVar
+        samples <- readMVar tempSampleVar
         micAssoc <- readMVar micVar
         FW.pollEvents
-        GL.runGL (display micAssoc temp)
+        GL.runGL (display micAssoc temp samples)
         yield
 
-display :: Mic.Assoc -> Temp -> GL ()
-display assoc temperature = do
+display :: Mic.Assoc -> Temp -> SampleMap -> GL ()
+display assoc temperature samples = do
     GL.clearColor $= GL.Color4 0.7 0.4 0.8 0
     GL.clear [ GL.ColorBuffer, GL.DepthBuffer ]
     
@@ -105,8 +108,8 @@ display assoc temperature = do
     
     drawPanel
         (Percent 50,Px 0)
-        (Percent 50, Px 20)
-        (temperatureLabel temperature)
+        (Percent 100, Percent 100)
+        (temperatureLabels temperature samples)
     
     GL.flush
     FW.swapBuffers
@@ -137,24 +140,32 @@ drawPanel pt size panel = GL.preservingMatrix $ do
 
 type Panel = GL ()
 
-temperatureLabel :: Temp -> Panel
-temperatureLabel t = do
+renderText :: GLfloat -> String -> GL ()
+renderText s' text = GL.preservingMatrix $ do
+    GL.Size width height <- GL.get FW.windowSize
+    let as = fromIntegral width / fromIntegral height
+        s = s' * 0.003
+    GL.scale (s / as) (-s) 1
+    forM_ (lines text) $ \line -> do
+        GL.translate (GL.Vector3 0 (-14) 0 :: GL.Vector3 GLfloat)
+        FW.renderString FW.Fixed8x16 line
+
+temperatureLabels :: Temp -> SampleMap -> Panel
+temperatureLabels t samples = do
     GL.color (GL.Color3 0 0 0 :: GL.Color3 GLfloat)
     GL.renderPrimitive GL.Quads $ do
         forM_ ([(0,0),(0,1),(1,1),(1,0)] :: [(GLfloat,GLfloat)])
             $ \(x,y) -> GL.vertex $ GL.Vertex2 x y
-    
     GL.color (GL.Color4 1 1 1 1 :: GL.Color4 GLfloat)
-    renderText 0.01 $ show (round t) ++ "° C"
-
-renderText :: GLfloat -> String -> GL ()
-renderText s text = GL.preservingMatrix $ do
-    GL.rotate 180 (GL.Vector3 1 0 0 :: GL.Vector3 GLfloat)
-    GL.translate (GL.Vector3 0 (-1) 0 :: GL.Vector3 GLfloat)
-    GL.Size width height <- GL.get FW.windowSize
-    let as = fromIntegral width / fromIntegral height
-    GL.scale (s / as) (s * 4) 0
-    FW.renderString FW.Fixed8x16 text
+    GL.translate (GL.Vector3 0.1 0.1 0 :: GL.Vector3 GLfloat)
+    renderText 1
+        $ show (round t) ++ "° C\n"
+        ++ "Base: " ++ sampleAt Base ++ "° C\n"
+        ++ " Mid: " ++ sampleAt Mid ++ "° C\n"
+        ++ " Top: " ++ sampleAt Top ++ "° C\n"
+    where
+        sampleAt x = fromJust
+            $ Just (show . round) <*> M.lookup x samples <|> Just "---"
 
 data MicRange = MicRange Mic.Pair Mic.Pair
 
@@ -201,5 +212,5 @@ audioGraph assoc = do
     
     when (not $ null assoc) $ GL.preservingMatrix $ do
         GL.color (GL.Color3 1 1 1 :: GL.Color3 GLfloat)
-        GL.translate (GL.Vector3 0 (-0.5) 0 :: GL.Vector3 GLfloat)
-        renderText 0.003 $ show $ round $ fst best
+        GL.translate (GL.Vector3 0.1 0.1 0 :: GL.Vector3 GLfloat)
+        renderText 2 $ show $ round $ fst best
