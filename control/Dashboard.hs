@@ -38,6 +38,7 @@ main = do
     tempVar <- newMVar 0
     tempSampleVar <- newMVar M.empty
     micVar <- newMVar []
+    freqMarkVar <- newMVar 0
     
     let markSample :: TempSample -> IO ()
         markSample sample = do
@@ -65,6 +66,13 @@ main = do
                 FW.CharKey '1' -> GL.liftIO $ markSample Base
                 FW.CharKey '2' -> GL.liftIO $ markSample Mid
                 FW.CharKey '3' -> GL.liftIO $ markSample Top
+                FW.CharKey 'F' -> GL.liftIO $ do
+                    micAssoc <- readMVar micVar
+                    let freq = round $ fst $ maximumBy (comparing snd) micAssoc
+                    putStrLn $ "Marked frequency "
+                        ++ show freq ++ ": " ++ show micAssoc
+                    swapMVar freqMarkVar freq
+                    return ()
                 _ -> return ()
             FW.Release -> return ()
     
@@ -76,8 +84,8 @@ main = do
                 Just t -> swapMVar tempVar t >> return ()
                 Nothing -> return ()
         )
-        . setInterval 1.0 (do
-            micAssoc <- Mic.listen "plughw:0,0" (11025 * 2) 8192
+        . setInterval 0.25 (do
+            micAssoc <- Mic.listen "plughw:0,0" (11025 * 2) 2048
             swapMVar micVar micAssoc
         )
         . setInterval 0.05 (do
@@ -90,12 +98,13 @@ main = do
         temp <- readMVar tempVar
         samples <- readMVar tempSampleVar
         micAssoc <- readMVar micVar
+        freqMark <- readMVar freqMarkVar
         FW.pollEvents
-        GL.runGL (display micAssoc temp samples)
+        GL.runGL (display micAssoc temp samples freqMark)
         yield
 
-display :: Mic.Assoc -> Temp -> SampleMap -> GL ()
-display assoc temperature samples = do
+display :: Mic.Assoc -> Temp -> SampleMap -> Int -> GL ()
+display assoc temperature samples freqMark = do
     GL.clearColor $= GL.Color4 0.7 0.4 0.8 0
     GL.clear [ GL.ColorBuffer, GL.DepthBuffer ]
     
@@ -109,7 +118,7 @@ display assoc temperature samples = do
     drawPanel
         (Percent 50,Px 0)
         (Percent 100, Percent 100)
-        (temperatureLabels temperature samples)
+        (labels temperature samples freqMark)
     
     GL.flush
     FW.swapBuffers
@@ -150,8 +159,8 @@ renderText s' text = GL.preservingMatrix $ do
         GL.translate (GL.Vector3 0 (-14) 0 :: GL.Vector3 GLfloat)
         FW.renderString FW.Fixed8x16 line
 
-temperatureLabels :: Temp -> SampleMap -> Panel
-temperatureLabels t samples = do
+labels :: Temp -> SampleMap -> Int -> Panel
+labels t samples freqMark = do
     GL.color (GL.Color3 0 0 0 :: GL.Color3 GLfloat)
     GL.renderPrimitive GL.Quads $ do
         forM_ ([(0,0),(0,1),(1,1),(1,0)] :: [(GLfloat,GLfloat)])
@@ -159,10 +168,12 @@ temperatureLabels t samples = do
     GL.color (GL.Color4 1 1 1 1 :: GL.Color4 GLfloat)
     GL.translate (GL.Vector3 0.1 0.1 0 :: GL.Vector3 GLfloat)
     renderText 1
-        $ show (round t) ++ "° C\n"
-        ++ "Base: " ++ sampleAt Base ++ "° C\n"
-        ++ " Mid: " ++ sampleAt Mid ++ "° C\n"
-        ++ " Top: " ++ sampleAt Top ++ "° C\n"
+        $ "Temperature:" ++ show (round t) ++ "° C\n\n"
+        ++ "    Base: " ++ sampleAt Base ++ "° C\n"
+        ++ "    Mid:  " ++ sampleAt Mid ++ "° C\n"
+        ++ "    Top:  " ++ sampleAt Top ++ "° C\n"
+        ++ "\n\n"
+        ++ "Frequency:" ++ show freqMark ++ " Hz\n"
     where
         sampleAt x = fromJust
             $ Just (show . round) <*> M.lookup x samples <|> Just "---"
@@ -213,4 +224,4 @@ audioGraph assoc = do
     when (not $ null assoc) $ GL.preservingMatrix $ do
         GL.color (GL.Color3 1 1 1 :: GL.Color3 GLfloat)
         GL.translate (GL.Vector3 0.1 0.1 0 :: GL.Vector3 GLfloat)
-        renderText 2 $ show $ round $ fst best
+        renderText 2 . (++ " Hz") . show . round . fst $ best
