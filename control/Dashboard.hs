@@ -174,7 +174,7 @@ micRange assoc = MicRange fp ap
     where
         (freqs,amps) = unzip assoc
         fp = (maximum freqs, minimum freqs)
-        ap = (2,0)
+        ap = (0.5,0)
 
 micCoord :: MicRange -> Mic.Pair -> (GLfloat,GLfloat)
 micCoord (MicRange (maxF,minF) (maxA,minA)) (freq,amp) = (x,y)

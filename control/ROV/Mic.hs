@@ -34,6 +34,6 @@ listen dev sampleRate samples = do
                 $ Ax.listArray (0,n-1) $ map (:+ 0) rawSound
             sampleStep = fromIntegral sampleRate / fromIntegral n
             freqs = [ 0, sampleStep .. fromIntegral sampleRate / 2 ]
-            freqAssoc = zip freqs amps
+            freqAssoc = [ (f,a) | (f,a) <-  zip freqs amps, f > 500 && f < 5500 ]
         
         return freqAssoc
