@@ -4,10 +4,11 @@ import qualified Graphics.Rendering.OGL as GL
 import Graphics.Rendering.OGL (GL,GLfloat,($=),($~))
 import qualified Graphics.UI.OGL.GLFW as FW
 
-import qualified Control.Monad as M
+import Control.Monad
 import Control.Monad.Trans (liftIO)
 import Data.List (maximumBy)
 import Data.Ord (comparing)
+import qualified Data.Map as M
 
 import Control.Concurrent.MVar
 import Control.Concurrent (yield)
@@ -21,6 +22,9 @@ import qualified ROV.Comm as Comm
 
 import Event (setTimeout,setInterval,runEvents)
 
+data TempSample = Base | Mid | Top
+    deriving (Ord,Eq,Show)
+
 main :: IO ()
 main = do
     js <- getJoystick
@@ -28,6 +32,16 @@ main = do
     cal <- readCalibration "data/therm.txt"
     
     FW.initialize
+    
+    tempVar <- newMVar 0
+    tempSampleVar <- newMVar M.empty
+    micVar <- newMVar []
+    
+    let markSample :: TempSample -> IO ()
+        markSample sample = do
+            t <- readMVar tempVar
+            putStrLn $ "Mark at " ++ show sample ++ ": " ++ show t ++ "° C"
+            modifyMVar_ tempSampleVar (return . M.insert sample t)
     
     FW.openWindow (GL.Size 1024 300) [ FW.DisplayAlphaBits 8 ] FW.Window
     GL.runGL $ do
@@ -42,11 +56,15 @@ main = do
             GL.loadIdentity
             GL.ortho2D 0 (realToFrac w) (realToFrac h) 0
         (FW.keyCallback $=) $ \key state -> case state of
-            FW.Press -> onKeyDown key
-            FW.Release -> onKeyUp key
-    
-    tempVar <- newMVar 0
-    micVar <- newMVar []
+            FW.Press -> case key of
+                FW.SpecialKey FW.ESC -> GL.liftIO $ do
+                    FW.closeWindow
+                    FW.terminate
+                FW.CharKey '1' -> GL.liftIO $ markSample Base
+                FW.CharKey '2' -> GL.liftIO $ markSample Mid
+                FW.CharKey '3' -> GL.liftIO $ markSample Top
+                _ -> return ()
+            FW.Release -> return ()
     
     runEvents 3
         . setInterval 0 (do 
@@ -66,19 +84,12 @@ main = do
         )
         $ []
     
-    M.forever $ do
+    forever $ do
         temp <- readMVar tempVar
         micAssoc <- readMVar micVar
         FW.pollEvents
         GL.runGL (display micAssoc temp)
         yield
-
-onKeyDown (FW.SpecialKey FW.ESC) = GL.liftIO $ do
-    FW.closeWindow
-    FW.terminate
-onKeyDown _ = return ()
-
-onKeyUp _ = return ()
 
 display :: Mic.Assoc -> Temp -> GL ()
 display assoc temperature = do
@@ -130,7 +141,7 @@ temperatureLabel :: Temp -> Panel
 temperatureLabel t = do
     GL.color (GL.Color3 0 0 0 :: GL.Color3 GLfloat)
     GL.renderPrimitive GL.Quads $ do
-        M.forM_ ([(0,0),(0,1),(1,1),(1,0)] :: [(GLfloat,GLfloat)])
+        forM_ ([(0,0),(0,1),(1,1),(1,0)] :: [(GLfloat,GLfloat)])
             $ \(x,y) -> GL.vertex $ GL.Vertex2 x y
     
     GL.color (GL.Color4 1 1 1 1 :: GL.Color4 GLfloat)
@@ -166,7 +177,7 @@ audioGraph :: Mic.Assoc -> Panel
 audioGraph assoc = do
     GL.color (GL.Color3 0.3 0.3 0.3 :: GL.Color3 GLfloat)
     GL.renderPrimitive GL.Quads $ do
-        M.forM_ ([(0,0),(0,1),(1,1),(1,0)] :: [(GLfloat,GLfloat)])
+        forM_ ([(0,0),(0,1),(1,1),(1,0)] :: [(GLfloat,GLfloat)])
             $ \(x,y) -> GL.vertex $ GL.Vertex2 x y
     
     let
@@ -177,18 +188,18 @@ audioGraph assoc = do
         best = maximumBy (comparing snd)
             [ (f,a) | (f,a) <- assoc, f >= 1000, f <= 5000 ]
     
-    M.when (not $ null assoc) $ do
+    when (not $ null assoc) $ do
         GL.color (GL.Color3 0.6 0.3 0.3 :: GL.Color3 GLfloat)
         GL.renderPrimitive GL.Quads $ do
-            M.forM_ aoi $ \(x,y) -> GL.vertex $ GL.Vertex2 x y
+            forM_ aoi $ \(x,y) -> GL.vertex $ GL.Vertex2 x y
     
     GL.color (GL.Color3 1 0 0 :: GL.Color3 GLfloat)
     GL.renderPrimitive GL.Lines $ do
-        M.forM_ lines $ \((x0,y0),(x1,y1)) -> do
+        forM_ lines $ \((x0,y0),(x1,y1)) -> do
             GL.vertex $ GL.Vertex2 x0 y0
             GL.vertex $ GL.Vertex2 x1 y1
     
-    M.when (not $ null assoc) $ GL.preservingMatrix $ do
+    when (not $ null assoc) $ GL.preservingMatrix $ do
         GL.color (GL.Color3 1 1 1 :: GL.Color3 GLfloat)
         GL.translate (GL.Vector3 0 (-0.5) 0 :: GL.Vector3 GLfloat)
         renderText 0.003 $ show $ round $ fst best
