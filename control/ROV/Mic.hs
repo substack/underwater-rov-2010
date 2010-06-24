@@ -31,7 +31,10 @@ listen dev sampleRate samples = do
         
         let
             amps = map magnitude $ Ax.elems $ fft
-                $ Ax.listArray (0,n-1) $ map (:+ 0) rawSound
+                $ Ax.listArray (0,n-1) $ map (:+ 0)
+                $ [ s * 0.5 * (1 - cos t)
+                    | (s,t) <- zip rawSound [ 0, dt .. 2 * pi ] ]
+            dt = 2 * pi / (fromIntegral $ length rawSound)
             sampleStep = fromIntegral sampleRate / fromIntegral n
             freqs = [ 0, sampleStep .. fromIntegral sampleRate / 2 ]
             freqAssoc = [ (f,a) | (f,a) <-  zip freqs amps, f > 500 && f < 5500 ]

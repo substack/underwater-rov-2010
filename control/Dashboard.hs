@@ -14,6 +14,7 @@ import Data.Maybe (fromJust)
 
 import qualified Data.Time.Clock.POSIX as T
 import qualified System.Posix.Files (createSymbolicLink,removeLink)
+import qualified System.IO as IO
 
 import Control.Concurrent.MVar
 import Control.Concurrent (forkOS,yield)
@@ -51,6 +52,8 @@ main = do
         markSample sample = do
             temp <- readMVar tempVar
             putStrLn $ "Mark at " ++ show sample ++ ": " ++ show temp ++ "° C"
+            IO.hFlush IO.stdout
+            
             modifyMVar_ tempSampleVar (return . M.insert sample temp)
             forkOS $ do
                 samples <- unzip . M.toList . M.mapKeys (sampleHeights M.!)
@@ -81,9 +84,12 @@ main = do
                 FW.CharKey '3' -> GL.liftIO $ markSample Top
                 FW.CharKey 'F' -> GL.liftIO $ do
                     micAssoc <- readMVar micVar
-                    let freq = round $ fst $ maximumBy (comparing snd) micAssoc
+                    let freq = round $ fst $ maximumBy (comparing snd)
+                            [ (f,a) | (f,a) <- micAssoc, f >= 1000, f <= 5000 ]
                     putStrLn $ "Marked frequency "
                         ++ show freq ++ ": " ++ show micAssoc
+                    IO.hFlush IO.stdout
+                    
                     swapMVar freqMarkVar freq
                     return ()
                 FW.CharKey 'G' -> GL.liftIO $ do
@@ -103,7 +109,7 @@ main = do
                 Nothing -> return ()
         )
         . setInterval 0.25 (do
-            micAssoc <- Mic.listen "plughw:0,0" (11025 * 2) 2048
+            micAssoc <- Mic.listen "plughw:0,0" (11025 * 2) 4096
             swapMVar micVar micAssoc
         )
         . setInterval 0.05 (do
