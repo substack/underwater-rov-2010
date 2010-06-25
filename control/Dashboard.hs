@@ -34,6 +34,10 @@ data TempSample = Base | Mid | Top
     deriving (Ord,Eq,Show)
 type SampleMap = M.Map TempSample Temp
 
+data FreqSite = A | B | C 
+    deriving (Ord,Eq,Show)
+type FreqMap = M.Map FreqSite (Int,Mic.Amplitude)
+
 sampleHeights :: M.Map TempSample Double
 sampleHeights = M.fromList [(Base,40),(Mid,70),(Top,100)]
 
@@ -48,7 +52,7 @@ main = do
     tempVar <- newMVar 0
     tempSampleVar <- newMVar M.empty
     micVar <- newMVar []
-    freqMarkVar <- newMVar 0
+    freqMarksVar <- newMVar $ M.fromList [(A,(0,0)),(B,(0,0)),(C,(0,0))]
     
     let markSample :: TempSample -> IO ()
         markSample sample = do
@@ -63,6 +67,13 @@ main = do
                 time <- T.getPOSIXTime
                 join $ uncurry (Chart.plotPNG "data/temperature.png") samples
             return ()
+        
+        markSite :: FreqSite -> IO ()
+        markSite site = do
+            b <- best <$> readMVar micVar
+            modifyMVar_ freqMarksVar (return . M.insert site b)
+            putStrLn $ "Marked site " ++ show site ++ ": " ++ show b
+            IO.hFlush IO.stdout
     
     FW.openWindow (GL.Size 1024 300) [ FW.DisplayAlphaBits 8 ] FW.Window
     GL.runGL $ do
@@ -84,16 +95,9 @@ main = do
                 FW.CharKey '1' -> GL.liftIO $ markSample Base
                 FW.CharKey '2' -> GL.liftIO $ markSample Mid
                 FW.CharKey '3' -> GL.liftIO $ markSample Top
-                FW.CharKey 'F' -> GL.liftIO $ do
-                    micAssoc <- readMVar micVar
-                    let freq = round $ fst $ maximumBy (comparing snd)
-                            [ (f,a) | (f,a) <- micAssoc, f >= 1000, f <= 5000 ]
-                    putStrLn $ "Marked frequency "
-                        ++ show freq ++ ": " ++ show micAssoc
-                    IO.hFlush IO.stdout
-                    
-                    swapMVar freqMarkVar freq
-                    return ()
+                FW.CharKey 'A' -> GL.liftIO $ markSite A
+                FW.CharKey 'B' -> GL.liftIO $ markSite B
+                FW.CharKey 'C' -> GL.liftIO $ markSite C
                 FW.CharKey 'G' -> GL.liftIO $ do
                     samples <- unzip . M.toList . M.mapKeys (sampleHeights M.!)
                         <$> readMVar tempSampleVar
@@ -124,13 +128,13 @@ main = do
         temp <- readMVar tempVar
         samples <- readMVar tempSampleVar
         micAssoc <- readMVar micVar
-        freqMark <- readMVar freqMarkVar
+        freqMarks <- readMVar freqMarksVar
         FW.pollEvents
-        GL.runGL (display micAssoc temp samples freqMark)
+        GL.runGL (display micAssoc temp samples freqMarks)
         yield
 
-display :: Mic.Assoc -> Temp -> SampleMap -> Int -> GL ()
-display assoc temperature samples freqMark = do
+display :: Mic.Assoc -> Temp -> SampleMap -> FreqMap -> GL ()
+display assoc temperature samples freqMarks = do
     GL.clearColor $= GL.Color4 0.7 0.4 0.8 0
     GL.clear [ GL.ColorBuffer, GL.DepthBuffer ]
     
@@ -144,7 +148,7 @@ display assoc temperature samples freqMark = do
     drawPanel
         (Percent 50,Px 0)
         (Percent 100, Percent 100)
-        (labels temperature samples freqMark)
+        (labels temperature samples freqMarks)
     
     GL.flush
     FW.swapBuffers
@@ -185,8 +189,8 @@ renderText s' text = GL.preservingMatrix $ do
         GL.translate (GL.Vector3 0 (-14) 0 :: GL.Vector3 GLfloat)
         FW.renderString FW.Fixed8x16 line
 
-labels :: Temp -> SampleMap -> Int -> Panel
-labels t samples freqMark = do
+labels :: Temp -> SampleMap -> FreqMap -> Panel
+labels t samples freqMarks = do
     GL.color (GL.Color3 0 0 0 :: GL.Color3 GLfloat)
     GL.renderPrimitive GL.Quads $ do
         forM_ ([(0,0),(0,1),(1,1),(1,0)] :: [(GLfloat,GLfloat)])
@@ -199,8 +203,12 @@ labels t samples freqMark = do
         ++ "    2. Mid:  " ++ sampleAt Mid ++ "° C\n"
         ++ "    3. Top:  " ++ sampleAt Top ++ "° C\n"
         ++ "\n\n"
-        ++ "Frequency:" ++ show freqMark ++ " Hz\n"
+        ++ "Frequencies:\n"
+        ++ "    A: " ++  showFreq (freqMarks M.! A) ++ "\n"
+        ++ "    B: " ++  showFreq (freqMarks M.! B) ++ "\n"
+        ++ "    C: " ++  showFreq (freqMarks M.! C) ++ "\n"
     where
+        showFreq (f,a) = printf "(%d Hz, %.2f)" f a
         sampleAt x = fromJust
             $ Just (show . round) <*> M.lookup x samples <|> Just "---"
 
@@ -221,6 +229,12 @@ micCoord (MicRange (maxF,minF) (maxA,minA)) (freq,amp) = (x,y)
         r :: Double -> GLfloat
         r = fromRational . toRational
 
+best :: Mic.Assoc -> (Int,Mic.Amplitude)
+best assoc
+    = first round
+    . maximumBy (comparing snd)
+    $ [ (f,a) | (f,a) <- assoc, f >= 1000, f <= 5000 ]
+
 audioGraph :: Mic.Assoc -> Panel
 audioGraph assoc = do
     GL.color (GL.Color3 0.3 0.3 0.3 :: GL.Color3 GLfloat)
@@ -233,10 +247,7 @@ audioGraph assoc = do
         coords = map (micCoord range) assoc
         lines = zip coords (tail coords)
         aoi = map (micCoord range) [ (1000,0), (1000,2), (5000,2), (5000,0) ]
-        (bestFreq,bestAmp)
-            = first round
-            . maximumBy (comparing snd)
-            $ [ (f,a) | (f,a) <- assoc, f >= 1000, f <= 5000 ]
+        (bestFreq,bestAmp) = best assoc
     
     when (not $ null assoc) $ do
         GL.color (GL.Color3 0.6 0.3 0.3 :: GL.Color3 GLfloat)
