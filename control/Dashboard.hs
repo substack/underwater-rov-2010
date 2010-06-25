@@ -11,6 +11,7 @@ import Data.List (maximumBy)
 import Data.Ord (comparing)
 import qualified Data.Map as M
 import Data.Maybe (fromJust)
+import Text.Printf (printf)
 
 import qualified Data.Time.Clock.POSIX as T
 import qualified System.Posix.Files (createSymbolicLink,removeLink)
@@ -19,6 +20,7 @@ import qualified System.IO as IO
 import Control.Concurrent.MVar
 import Control.Concurrent (forkOS,yield)
 import Control.Applicative ((<$>),(<*>),(<|>))
+import Control.Arrow (first,second)
 
 import ROV.Input (getJoystick,readInput)
 import ROV.Drive (drive)
@@ -209,7 +211,7 @@ micRange assoc = MicRange fp ap
     where
         (freqs,amps) = unzip assoc
         fp = (maximum freqs, minimum freqs)
-        ap = (2,0)
+        ap = (maximum amps + 0.5, 0)
 
 micCoord :: MicRange -> Mic.Pair -> (GLfloat,GLfloat)
 micCoord (MicRange (maxF,minF) (maxA,minA)) (freq,amp) = (x,y)
@@ -231,8 +233,10 @@ audioGraph assoc = do
         coords = map (micCoord range) assoc
         lines = zip coords (tail coords)
         aoi = map (micCoord range) [ (1000,0), (1000,2), (5000,2), (5000,0) ]
-        best = maximumBy (comparing snd)
-            [ (f,a) | (f,a) <- assoc, f >= 1000, f <= 5000 ]
+        (bestFreq,bestAmp)
+            = first round
+            . maximumBy (comparing snd)
+            $ [ (f,a) | (f,a) <- assoc, f >= 1000, f <= 5000 ]
     
     when (not $ null assoc) $ do
         GL.color (GL.Color3 0.6 0.3 0.3 :: GL.Color3 GLfloat)
@@ -248,4 +252,6 @@ audioGraph assoc = do
     when (not $ null assoc) $ GL.preservingMatrix $ do
         GL.color (GL.Color3 1 1 1 :: GL.Color3 GLfloat)
         GL.translate (GL.Vector3 0.1 0.1 0 :: GL.Vector3 GLfloat)
-        renderText 2 . (++ " Hz") . show . round . fst $ best
+        renderText 2
+            $ show bestFreq ++ " Hz\n"
+            ++ printf "%.2f" bestAmp
