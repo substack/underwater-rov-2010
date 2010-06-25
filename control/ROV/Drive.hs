@@ -12,10 +12,10 @@ drive comm input
     = execROV comm $ do
         let slx = if lx > 0 then 1 else -1
             sly = if ly > 0 then 1 else -1
-            sry = if ry > 0 then 1 else -1
-        ML $= slx * (negate $ lx ** 2) + sly * (ly ** 2)
-        MR $= slx * (lx ** 2) + sly * (ly ** 2)
-        MV $= sry * (ry ** 2)
+            sry = if ry > 0 then -1 else 1
+        ML $= slx * (negate $ lx ** 2) + sly * (abs $ ly ** 2)
+        MR $= slx * (abs $ lx ** 2) + sly * (abs $ ly ** 2)
+        MV $= sry * (abs $ ry ** 2)
         when (button Button5) $ Pitch $+ 0.1
         when (button Button4) $ Pitch $- 0.1
         when (button ButtonL) $ Pinchers $+ 0.25

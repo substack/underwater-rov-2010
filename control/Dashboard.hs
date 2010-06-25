@@ -109,7 +109,7 @@ main = do
                 Nothing -> return ()
         )
         . setInterval 0.25 (do
-            micAssoc <- Mic.listen "plughw:0,0" (11025 * 2) 4096
+            micAssoc <- Mic.listen "plughw:0,0" (11025 * 2) (1024 * 4)
             swapMVar micVar micAssoc
         )
         . setInterval 0.05 (do
@@ -192,10 +192,10 @@ labels t samples freqMark = do
     GL.color (GL.Color4 1 1 1 1 :: GL.Color4 GLfloat)
     GL.translate (GL.Vector3 0.1 0.1 0 :: GL.Vector3 GLfloat)
     renderText 1
-        $ "Temperature:" ++ show (round t) ++ "° C\n\n"
-        ++ "    Base: " ++ sampleAt Base ++ "° C\n"
-        ++ "    Mid:  " ++ sampleAt Mid ++ "° C\n"
-        ++ "    Top:  " ++ sampleAt Top ++ "° C\n"
+        $ "Temperature: " ++ show (round t) ++ "° C\n\n"
+        ++ "    1. Base: " ++ sampleAt Base ++ "° C\n"
+        ++ "    2. Mid:  " ++ sampleAt Mid ++ "° C\n"
+        ++ "    3. Top:  " ++ sampleAt Top ++ "° C\n"
         ++ "\n\n"
         ++ "Frequency:" ++ show freqMark ++ " Hz\n"
     where
@@ -209,7 +209,7 @@ micRange assoc = MicRange fp ap
     where
         (freqs,amps) = unzip assoc
         fp = (maximum freqs, minimum freqs)
-        ap = (0.5,0)
+        ap = (2,0)
 
 micCoord :: MicRange -> Mic.Pair -> (GLfloat,GLfloat)
 micCoord (MicRange (maxF,minF) (maxA,minA)) (freq,amp) = (x,y)
