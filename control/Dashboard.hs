@@ -191,11 +191,11 @@ renderText s' text = GL.preservingMatrix $ do
 
 labels :: Temp -> SampleMap -> FreqMap -> Panel
 labels t samples freqMarks = do
-    GL.color (GL.Color3 0 0 0 :: GL.Color3 GLfloat)
+    GL.color (GL.Color3 1 1 1 :: GL.Color3 GLfloat)
     GL.renderPrimitive GL.Quads $ do
         forM_ ([(0,0),(0,1),(1,1),(1,0)] :: [(GLfloat,GLfloat)])
             $ \(x,y) -> GL.vertex $ GL.Vertex2 x y
-    GL.color (GL.Color4 1 1 1 1 :: GL.Color4 GLfloat)
+    GL.color (GL.Color4 0 0 0 1 :: GL.Color4 GLfloat)
     GL.translate (GL.Vector3 0.1 0.1 0 :: GL.Vector3 GLfloat)
     renderText 1
         $ "Temperature: " ++ show (round t) ++ "° C\n\n"
@@ -204,9 +204,9 @@ labels t samples freqMarks = do
         ++ "    3. Top:  " ++ sampleAt Top ++ "° C\n"
         ++ "\n\n"
         ++ "Frequencies:\n"
-        ++ "    A: " ++  showFreq (freqMarks M.! A) ++ "\n"
-        ++ "    B: " ++  showFreq (freqMarks M.! B) ++ "\n"
-        ++ "    C: " ++  showFreq (freqMarks M.! C) ++ "\n"
+        ++ "    A. " ++  showFreq (freqMarks M.! A) ++ "\n"
+        ++ "    B. " ++  showFreq (freqMarks M.! B) ++ "\n"
+        ++ "    C. " ++  showFreq (freqMarks M.! C) ++ "\n"
     where
         showFreq (f,a) = printf "(%d Hz, %.2f)" f a
         sampleAt x = fromJust
